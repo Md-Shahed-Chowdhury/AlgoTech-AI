@@ -1,0 +1,78 @@
+.page { max-width: 700px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+
+.header { text-align: center; margin-bottom: 2.5rem; }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #10b981;
+  background: rgba(16,185,129,0.12);
+  border: 1px solid rgba(16,185,129,0.25);
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  margin-bottom: 1rem;
+}
+
+.title { font-size: clamp(1.8rem,4vw,2.75rem); font-weight: 900; letter-spacing: -1px; margin-bottom: 0.75rem; }
+
+.sub { color: var(--text-2); font-size: 0.95rem; line-height: 1.7; }
+
+.questions { display: flex; flex-direction: column; gap: 1.1rem; margin-bottom: 1.5rem; }
+
+.qCard { padding: 1.5rem; }
+
+.qNum { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #10b981; margin-bottom: 0.5rem; }
+
+.qText { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 1.1rem; line-height: 1.5; }
+
+.options { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-sub);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--fast);
+}
+.option:hover { background: rgba(255,255,255,0.04); color: var(--text); border-color: var(--border); }
+
+.chosen  { border-color: var(--accent); background: rgba(99,102,241,0.1); color: var(--text); }
+.correct { border-color: #10b981 !important; background: rgba(16,185,129,0.12) !important; color: #10b981 !important; }
+.wrong   { border-color: #f43f5e !important; background: rgba(244,63,94,0.1) !important; color: #f43f5e !important; }
+
+.optLetter {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; font-weight: 700;
+  flex-shrink: 0;
+}
+
+.optIcon { margin-left: auto; flex-shrink: 0; }
+
+.submitBtn {
+  width: 100%;
+  justify-content: center;
+  padding: 0.8rem;
+  font-size: 0.95rem;
+}
+.submitBtn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+.result { padding: 2rem; text-align: center; }
+.resultScore { font-size: 3rem; font-weight: 900; color: #10b981; letter-spacing: -1px; }
+.resultMsg { color: var(--text-2); margin-top: 0.5rem; font-size: 1rem; }
+.retryBtn { margin-top: 1.25rem; }

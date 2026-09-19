@@ -1,0 +1,121 @@
+.page { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+.header { text-align: center; margin-bottom: 1.75rem; }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f59e0b;
+  background: rgba(245,158,11,0.12);
+  border: 1px solid rgba(245,158,11,0.28);
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  margin-bottom: 1rem;
+}
+
+.title { font-size: clamp(1.8rem, 4vw, 2.75rem); font-weight: 900; letter-spacing: -1px; margin-bottom: 0.75rem; }
+
+.sub { color: var(--text-2); font-size: 0.9rem; line-height: 1.7; }
+
+/* Legend */
+.legend {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 1.1rem;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-2);
+}
+
+.legendDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.hint {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* Grid wrapper */
+.gridWrap {
+  overflow-x: auto;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-sub);
+  background: var(--bg-card);
+  padding: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  gap: 2px;
+  user-select: none;
+}
+
+/* Cells */
+.cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background var(--fast), transform var(--fast);
+  min-width: 0;
+}
+
+.cell:hover { transform: scale(0.85); }
+
+.empty   { background: var(--bg-elevated); }
+.wall    { background: #1e2a3a; border: 1px solid rgba(99,102,241,0.15); }
+
+/* Use CSS custom property in gradient for animation */
+.start {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  box-shadow: 0 0 10px rgba(16,185,129,0.6);
+  border-radius: 5px;
+}
+.end {
+  background: linear-gradient(135deg, #f43f5e, #fb7185);
+  box-shadow: 0 0 10px rgba(244,63,94,0.6);
+  border-radius: 5px;
+}
+.visited {
+  background: rgba(99,102,241,0.35);
+  animation: pop 0.15s ease;
+}
+.path {
+  background: linear-gradient(135deg, #f59e0b, #fcd34d);
+  box-shadow: 0 0 6px rgba(245,158,11,0.5);
+  animation: pop 0.2s ease;
+}
+
+@keyframes pop {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}

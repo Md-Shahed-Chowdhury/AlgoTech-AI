@@ -1,0 +1,83 @@
+.page { max-width: 900px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+
+.header { text-align: center; margin-bottom: 2.5rem; }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  background: rgba(99,102,241,0.12);
+  border: 1px solid rgba(99,102,241,0.25);
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: clamp(1.8rem, 4vw, 2.75rem);
+  font-weight: 900;
+  letter-spacing: -1px;
+  margin-bottom: 0.75rem;
+}
+
+.sub {
+  color: var(--text-2);
+  font-size: 0.95rem;
+  max-width: 500px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.1rem;
+}
+
+.card { padding: 1.25rem; display: flex; flex-direction: column; gap: 0.6rem; }
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.complexity {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.cardActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.actionBtn {
+  flex: 1;
+  justify-content: center;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.8rem;
+}
