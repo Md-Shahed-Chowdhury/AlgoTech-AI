@@ -82,51 +82,59 @@ export function createGraph() {
  * @returns {AlgorithmStep}
  */
 export function createAlgorithmStep(params = {}) {
+  const stepIndex = params.stepIndex ?? 0
+  const currentNode = params.currentNode ?? null
+
   return {
-    // ── Which node is being expanded this step ────────────────────────────
-    currentNode:     params.currentNode     ?? null,   // nodeId | null
+    // ── Step Identification ───────────────────────────────────────────────
+    stepIndex,
+    stepNumber:      params.stepNumber ?? (stepIndex + 1),
+    action:          params.action ?? 'STEP',
+    reason:          params.reason ?? '',
 
-    // ── Node categorisation sets (arrays of nodeIds) ──────────────────────
-    visitedNodes:    params.visitedNodes    ?? [],     // closed / expanded
-    frontierNodes:   params.frontierNodes   ?? [],     // open / queued
-    unexploredNodes: params.unexploredNodes ?? [],     // not yet seen
-    pathNodes:       params.pathNodes       ?? [],     // solution path (final step)
+    // ── Node State & Categorisation ───────────────────────────────────────
+    currentNode,
+    selectedNode:    params.selectedNode ?? currentNode,
+    newlyVisitedNode: params.newlyVisitedNode ?? null,
+    visitedNodes:    params.visitedNodes ?? [],     // closed set array
+    frontierNodes:   params.frontierNodes ?? [],    // open set array
+    unexploredNodes: params.unexploredNodes ?? [],  // unvisited & not in frontier
+    discoveredNodes: params.discoveredNodes ?? [],  // visited + frontier
+    pathNodes:       params.pathNodes ?? [],        // final solution path
 
-    // ── Edge categorisation ───────────────────────────────────────────────
-    activeEdge:      params.activeEdge      ?? null,   // edgeId being checked
-    traversedEdges:  params.traversedEdges  ?? [],     // already used
-    pathEdges:       params.pathEdges       ?? [],     // on solution path
+    // ── Navigation & Path Tracking ────────────────────────────────────────
+    parentMap:       params.parentMap ?? {},        // Record<nodeId, parentId|null>
+    currentPath:     params.currentPath ?? [],      // path from start to currentNode
+    neighborsConsidered: params.neighborsConsidered ?? [], // Array<{ neighborId, edgeId, weight, status }>
 
-    // ── Ancestry ──────────────────────────────────────────────────────────
-    parentMap:       params.parentMap       ?? {},     // Record<nodeId, nodeId|null>
+    // ── Edge Categorisation ───────────────────────────────────────────────
+    activeEdge:      params.activeEdge ?? null,
+    traversedEdges:  params.traversedEdges ?? [],
+    pathEdges:       params.pathEdges ?? [],
 
-    // ── Cost / heuristic tracking (used by UCS, Greedy, A*) ──────────────
-    gCost:           params.gCost           ?? {},     // Record<nodeId, number>  cost so far
-    hCost:           params.hCost           ?? {},     // Record<nodeId, number>  heuristic
-    fCost:           params.fCost           ?? {},     // Record<nodeId, number>  g + h
+    // ── Cost & Heuristic Tracking (UCS / Greedy / A*) ────────────────────
+    gCost:           params.gCost ?? {},
+    hCost:           params.hCost ?? {},
+    fCost:           params.fCost ?? {},
+    frontierDetail:  params.frontierDetail ?? [],
 
-    // ── Frontier details (ordered list for panel display) ─────────────────
-    frontierDetail:  params.frontierDetail  ?? [],     // [{nodeId, priority, g, h}]
+    // ── Algorithm Specific State (Queue for BFS / Stack for DFS) ──────────
+    algorithmSpecificState: params.algorithmSpecificState ?? {},
 
-    // ── Natural-language explanation for this step ────────────────────────
-    reason:          params.reason          ?? '',
-
-    // ── Key calculation shown in the panel (e.g. "f(n)=g+h=3+2=5") ───────
-    calculations:    params.calculations    ?? [],     // string[]
-
-    // ── Metrics accumulated so far ────────────────────────────────────────
+    // ── Calculation Breakdown & Performance Metrics ───────────────────────
+    calculations:    params.calculations ?? [],
     metrics: {
-      nodesExpanded:  params.metrics?.nodesExpanded  ?? 0,
-      pathLength:     params.metrics?.pathLength     ?? 0,
-      totalCost:      params.metrics?.totalCost      ?? 0,
-      frontierSize:   params.metrics?.frontierSize   ?? 0,
+      nodesExpanded:  params.metrics?.nodesExpanded ?? 0,
+      pathLength:     params.metrics?.pathLength ?? 0,
+      totalCost:      params.metrics?.totalCost ?? 0,
+      frontierSize:   params.metrics?.frontierSize ?? 0,
     },
 
-    // ── Step metadata ─────────────────────────────────────────────────────
-    stepIndex:       params.stepIndex       ?? 0,
-    isInitial:       params.isInitial       ?? false,
-    isFinal:         params.isFinal         ?? false,
-    pathFound:       params.pathFound       ?? false,
+    // ── Terminal Flags ────────────────────────────────────────────────────
+    isInitial:       params.isInitial ?? false,
+    isFinal:         params.isFinal ?? false,
+    pathFound:       params.pathFound ?? false,
+    goalReached:     params.goalReached ?? (params.pathFound ?? false),
   }
 }
 
