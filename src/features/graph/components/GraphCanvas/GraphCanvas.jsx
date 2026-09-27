@@ -1,54 +1,48 @@
 /**
  * GraphCanvas.jsx
  * ─────────────────────────────────────────────────────────────────────────────
- * SVG-based canvas that renders nodes and edges.
- * Visual state is derived from the current AlgorithmStep (via useAlgorithmStore)
- * and the graph topology (via useGraphStore).
- *
- * STUB — full rendering implementation comes in the next phase.
- *
- * Props:
- *   readOnly  {boolean}  – if true, disables builder interactions (Exam mode)
- *   width     {number}   – canvas width in pixels
- *   height    {number}   – canvas height in pixels
+ * SVG-based interactive canvas.
+ * Renders nodes, edges, rubber-band connection lines, dot-grid background,
+ * and inline editing popover. Handles drag-and-drop node placement.
  */
 
-import { useRef, useCallback } from 'react'
-import { useGraphStore }     from '../../store/useGraphStore.js'
+import { useState, useRef, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useGraphStore } from '../../store/useGraphStore.js'
 import { useAlgorithmStore } from '../../store/useAlgorithmStore.js'
 import { BUILDER_MODE, NODE_STATE, EDGE_STATE } from '../../types/graphTypes.js'
+
+import NodeComponent from './NodeComponent.jsx'
+import EdgeComponent from './EdgeComponent.jsx'
+import InlineEditor from './InlineEditor.jsx'
 import styles from './GraphCanvas.module.css'
 
 // ── Visual state derivation ───────────────────────────────────────────────────
 
-/**
- * Given a step and graph, return a map of { nodeId → NODE_STATE }.
- * This is the only place where algorithm step data is translated to visual state.
- */
 function deriveNodeStates(step, graph) {
   const map = {}
   for (const id of Object.keys(graph.nodes)) {
     const node = graph.nodes[id]
-    if (node.isStart)                            map[id] = NODE_STATE.START
-    else if (node.isGoal)                        map[id] = NODE_STATE.GOAL
-    else                                         map[id] = NODE_STATE.UNEXPLORED
+    if (node.isStart) map[id] = NODE_STATE.START
+    else if (node.isGoal) map[id] = NODE_STATE.GOAL
+    else map[id] = NODE_STATE.UNEXPLORED
   }
   if (!step) return map
 
-  for (const id of (step.unexploredNodes ?? [])) {
+  for (const id of step.unexploredNodes ?? []) {
     if (!graph.nodes[id]?.isStart && !graph.nodes[id]?.isGoal) {
       map[id] = NODE_STATE.UNEXPLORED
     }
   }
-  for (const id of (step.frontierNodes ?? [])) {
+  for (const id of step.frontierNodes ?? []) {
     map[id] = NODE_STATE.FRONTIER
   }
-  for (const id of (step.visitedNodes ?? [])) {
+  for (const id of step.visitedNodes ?? []) {
     if (!graph.nodes[id]?.isStart && !graph.nodes[id]?.isGoal) {
       map[id] = NODE_STATE.VISITED
     }
   }
-  for (const id of (step.pathNodes ?? [])) {
+  for (const id of step.pathNodes ?? []) {
     if (!graph.nodes[id]?.isStart && !graph.nodes[id]?.isGoal) {
       map[id] = NODE_STATE.PATH
     }
@@ -60,15 +54,12 @@ function deriveNodeStates(step, graph) {
   return map
 }
 
-/**
- * Given a step and graph, return a map of { edgeId → EDGE_STATE }.
- */
 function deriveEdgeStates(step) {
   const map = {}
   if (!step) return map
 
-  for (const id of (step.traversedEdges ?? [])) map[id] = EDGE_STATE.TRAVERSED
-  for (const id of (step.pathEdges      ?? [])) map[id] = EDGE_STATE.PATH
+  for (const id of step.traversedEdges ?? []) map[id] = EDGE_STATE.TRAVERSED
+  for (const id of step.pathEdges ?? []) map[id] = EDGE_STATE.PATH
   if (step.activeEdge) map[step.activeEdge] = EDGE_STATE.ACTIVE
 
   return map
@@ -76,115 +67,279 @@ function deriveEdgeStates(step) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function GraphCanvas({ readOnly = false, width = 800, height = 500 }) {
+export default function GraphCanvas({ readOnly = false, width = 850, height = 550 }) {
   const svgRef = useRef(null)
 
-  // Graph topology
-  const graph       = useGraphStore(s => s.graph)
+  // Graph topology store
+  const graph = useGraphStore(s => s.graph)
   const builderMode = useGraphStore(s => s.builderMode)
-  const addNode     = useGraphStore(s => s.addNode)
-  const selectNode  = useGraphStore(s => s.selectNode)
+  const selectedNodeId = useGraphStore(s => s.selectedNodeId)
+  const selectedEdgeId = useGraphStore(s => s.selectedEdgeId)
+  const pendingEdgeSrcId = useGraphStore(s => s.pendingEdgeSrcId)
 
-  // Algorithm step (null when no run prepared)
+  // Store actions
+  const addNode = useGraphStore(s => s.addNode)
+  const moveNode = useGraphStore(s => s.moveNode)
+  const deleteNode = useGraphStore(s => s.deleteNode)
+  const setNodeLabel = useGraphStore(s => s.setNodeLabel)
+  const addEdge = useGraphStore(s => s.addEdge)
+  const deleteEdge = useGraphStore(s => s.deleteEdge)
+  const setEdgeWeight = useGraphStore(s => s.setEdgeWeight)
+  const setStart = useGraphStore(s => s.setStart)
+  const setGoal = useGraphStore(s => s.setGoal)
+  const selectNode = useGraphStore(s => s.selectNode)
+  const selectEdge = useGraphStore(s => s.selectEdge)
+  const clearSelection = useGraphStore(s => s.clearSelection)
+  const setPendingEdgeSrc = useGraphStore(s => s.setPendingEdgeSrc)
+
+  // Algorithm step data
   const currentStep = useAlgorithmStore(s => s.steps[s.currentStepIndex] ?? null)
-
   const nodeStates = deriveNodeStates(currentStep, graph)
   const edgeStates = deriveEdgeStates(currentStep)
 
-  // ── Canvas click handler ────────────────────────────────────────────────────
-  const handleCanvasClick = useCallback((e) => {
-    if (readOnly) return
-    if (builderMode !== BUILDER_MODE.ADD_NODE) return
+  // Dragging & Mouse Pointer tracking state
+  const [dragNodeId, setDragNodeId] = useState(null)
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+  const [inlineEditorTarget, setInlineEditorTarget] = useState(null) // { type, id, x, y, initialValue }
 
+  // Convert client coordinates to SVG canvas space
+  const getCanvasCoords = useCallback((e) => {
+    if (!svgRef.current) return { x: 0, y: 0 }
     const rect = svgRef.current.getBoundingClientRect()
-    const x    = e.clientX - rect.left
-    const y    = e.clientY - rect.top
-    addNode(x, y)
-  }, [readOnly, builderMode, addNode])
+    const scaleX = width / rect.width
+    const scaleY = height / rect.height
+    const x = Math.round(Math.max(25, Math.min(width - 25, (e.clientX - rect.left) * scaleX)))
+    const y = Math.round(Math.max(25, Math.min(height - 25, (e.clientY - rect.top) * scaleY)))
+    return { x, y }
+  }, [width, height])
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // Canvas pointer down (Clicking canvas background)
+  const handleCanvasPointerDown = useCallback((e) => {
+    if (readOnly) return
+    // Only react if target is the SVG background or grid
+    if (e.target.tagName !== 'svg' && e.target.tagName !== 'rect') return
+
+    const { x, y } = getCanvasCoords(e)
+
+    if (builderMode === BUILDER_MODE.ADD_NODE) {
+      addNode(x, y)
+    } else {
+      clearSelection()
+      setInlineEditorTarget(null)
+    }
+  }, [readOnly, builderMode, getCanvasCoords, addNode, clearSelection])
+
+  // Canvas pointer move (tracks dragging node or rubber-band edge)
+  const handlePointerMove = useCallback((e) => {
+    const { x, y } = getCanvasCoords(e)
+    setMousePos({ x, y })
+
+    if (dragNodeId && !readOnly) {
+      moveNode(dragNodeId, x, y)
+    }
+  }, [dragNodeId, readOnly, getCanvasCoords, moveNode])
+
+  // Pointer up (releases drag)
+  const handlePointerUp = useCallback(() => {
+    setDragNodeId(null)
+  }, [])
+
+  // Node interaction logic
+  const handleNodePointerDown = (nodeId, e) => {
+    if (readOnly) return
+    e.stopPropagation()
+
+    if (builderMode === BUILDER_MODE.SELECT || builderMode === BUILDER_MODE.MOVE_NODE) {
+      selectNode(nodeId)
+      setDragNodeId(nodeId)
+    }
+  }
+
+  const handleNodeClick = (nodeId, e) => {
+    if (readOnly) return
+    e.stopPropagation()
+
+    switch (builderMode) {
+      case BUILDER_MODE.SELECT:
+        selectNode(nodeId)
+        break
+
+      case BUILDER_MODE.ADD_EDGE:
+        if (!pendingEdgeSrcId) {
+          setPendingEdgeSrc(nodeId)
+        } else if (pendingEdgeSrcId !== nodeId) {
+          addEdge(pendingEdgeSrcId, nodeId)
+        } else {
+          setPendingEdgeSrc(null) // Cancel if clicked same node twice
+        }
+        break
+
+      case BUILDER_MODE.SET_START:
+        setStart(nodeId)
+        break
+
+      case BUILDER_MODE.SET_GOAL:
+        setGoal(nodeId)
+        break
+
+      case BUILDER_MODE.DELETE:
+        deleteNode(nodeId)
+        break
+
+      default:
+        selectNode(nodeId)
+    }
+  }
+
+  const handleNodeDoubleClick = (node, e) => {
+    if (readOnly) return
+    e.stopPropagation()
+    setInlineEditorTarget({
+      type: 'node',
+      id: node.id,
+      x: node.x,
+      y: node.y - 35,
+      initialValue: node.label,
+    })
+  }
+
+  // Edge interaction logic
+  const handleEdgeClick = (edgeId, e) => {
+    if (readOnly) return
+    e.stopPropagation()
+
+    if (builderMode === BUILDER_MODE.DELETE) {
+      deleteEdge(edgeId)
+    } else {
+      selectEdge(edgeId)
+    }
+  }
+
+  const handleEdgeDoubleClick = (edge, e) => {
+    if (readOnly) return
+    e.stopPropagation()
+    const srcNode = graph.nodes[edge.sourceId]
+    const tgtNode = graph.nodes[edge.targetId]
+    if (!srcNode || !tgtNode) return
+
+    const mx = (srcNode.x + tgtNode.x) / 2
+    const my = (srcNode.y + tgtNode.y) / 2
+
+    setInlineEditorTarget({
+      type: 'edge',
+      id: edge.id,
+      x: mx,
+      y: my - 30,
+      initialValue: edge.weight,
+    })
+  }
+
+  // Pending edge source node object
+  const pendingSrcNode = pendingEdgeSrcId ? graph.nodes[pendingEdgeSrcId] : null
+
   return (
-    <div className={styles.canvasWrap} style={{ width, height }}>
+    <div className={styles.canvasWrap} style={{ width: '100%', height }}>
       <svg
         ref={svgRef}
         className={styles.svg}
-        width={width}
+        width="100%"
         height={height}
         viewBox={`0 0 ${width} ${height}`}
-        onClick={handleCanvasClick}
-        aria-label="Graph canvas"
+        onPointerDown={handleCanvasPointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        aria-label="Interactive graph canvas"
       >
-        {/* Edges rendered below nodes */}
-        {Object.values(graph.edges).map(edge => (
-          <EdgeComponent
-            key={edge.id}
-            edge={edge}
-            sourceNode={graph.nodes[edge.sourceId]}
-            targetNode={graph.nodes[edge.targetId]}
-            state={edgeStates[edge.id] ?? EDGE_STATE.DEFAULT}
-            readOnly={readOnly}
-          />
-        ))}
+        <defs>
+          {/* Subtle Dot Grid Background Pattern */}
+          <pattern id="dotGrid" width="24" height="24" patternUnits="userSpaceOnUse">
+            <circle cx="12" cy="12" r="1.2" fill="var(--border)" opacity="0.45" />
+          </pattern>
 
-        {/* Nodes */}
-        {Object.values(graph.nodes).map(node => (
-          <NodeComponent
-            key={node.id}
-            node={node}
-            state={nodeStates[node.id] ?? NODE_STATE.UNEXPLORED}
-            costLabel={currentStep?.gCost?.[node.id] ?? currentStep?.fCost?.[node.id]}
-            readOnly={readOnly}
-            onClick={() => !readOnly && selectNode(node.id)}
+          {/* Directional Arrow Marker */}
+          <marker
+            id="arrowhead"
+            markerWidth="10"
+            markerHeight="7"
+            refX="9"
+            refY="3.5"
+            orient="auto"
+          >
+            <polygon points="0 0, 10 3.5, 0 7" fill="var(--accent)" />
+          </marker>
+        </defs>
+
+        {/* Grid Background */}
+        <rect width="100%" height="100%" fill="url(#dotGrid)" />
+
+        {/* Edges layer */}
+        <g className="edgesLayer">
+          {Object.values(graph.edges).map(edge => (
+            <EdgeComponent
+              key={edge.id}
+              edge={edge}
+              sourceNode={graph.nodes[edge.sourceId]}
+              targetNode={graph.nodes[edge.targetId]}
+              state={edgeStates[edge.id] ?? EDGE_STATE.DEFAULT}
+              isSelected={selectedEdgeId === edge.id}
+              readOnly={readOnly}
+              onClick={(e) => handleEdgeClick(edge.id, e)}
+              onDoubleClick={(e) => handleEdgeDoubleClick(edge, e)}
+            />
+          ))}
+        </g>
+
+        {/* Rubber-band connection line in ADD_EDGE mode */}
+        {pendingSrcNode && (
+          <motion.line
+            x1={pendingSrcNode.x}
+            y1={pendingSrcNode.y}
+            x2={mousePos.x}
+            y2={mousePos.y}
+            stroke="#f59e0b"
+            strokeWidth={2.5}
+            strokeDasharray="6 4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
           />
-        ))}
+        )}
+
+        {/* Nodes layer */}
+        <g className="nodesLayer">
+          <AnimatePresence>
+            {Object.values(graph.nodes).map(node => (
+              <NodeComponent
+                key={node.id}
+                node={node}
+                state={nodeStates[node.id] ?? NODE_STATE.UNEXPLORED}
+                costLabel={currentStep?.gCost?.[node.id] ?? currentStep?.fCost?.[node.id]}
+                isSelected={selectedNodeId === node.id}
+                isPendingSrc={pendingEdgeSrcId === node.id}
+                readOnly={readOnly}
+                onPointerDown={(e) => handleNodePointerDown(node.id, e)}
+                onClick={(e) => handleNodeClick(node.id, e)}
+                onDoubleClick={(e) => handleNodeDoubleClick(node, e)}
+              />
+            ))}
+          </AnimatePresence>
+        </g>
       </svg>
-    </div>
-  )
-}
 
-// ── Sub-components (will be split to Node.jsx / Edge.jsx in next phase) ───────
-
-function NodeComponent({ node, state, costLabel, readOnly, onClick }) {
-  // Placeholder — real styling comes in next phase
-  return (
-    <g
-      className={`${styles.node} ${styles[`node--${state}`]}`}
-      transform={`translate(${node.x}, ${node.y})`}
-      onClick={onClick}
-      style={{ cursor: readOnly ? 'default' : 'pointer' }}
-      role="button"
-      aria-label={`Node ${node.label}`}
-    >
-      <circle r={24} />
-      <text textAnchor="middle" dominantBaseline="central" className={styles.nodeLabel}>
-        {node.label}
-      </text>
-      {costLabel !== undefined && (
-        <text y={-32} textAnchor="middle" className={styles.costLabel}>
-          {typeof costLabel === 'number' ? costLabel.toFixed(1) : costLabel}
-        </text>
+      {/* Inline Editor Popover Overlay */}
+      {inlineEditorTarget && (
+        <InlineEditor
+          target={inlineEditorTarget}
+          onSave={(newValue) => {
+            if (inlineEditorTarget.type === 'node') {
+              setNodeLabel(inlineEditorTarget.id, newValue)
+            } else if (inlineEditorTarget.type === 'edge') {
+              setEdgeWeight(inlineEditorTarget.id, newValue)
+            }
+            setInlineEditorTarget(null)
+          }}
+          onCancel={() => setInlineEditorTarget(null)}
+        />
       )}
-    </g>
-  )
-}
-
-function EdgeComponent({ edge, sourceNode, targetNode, state, readOnly }) {
-  if (!sourceNode || !targetNode) return null
-
-  const mx = (sourceNode.x + targetNode.x) / 2
-  const my = (sourceNode.y + targetNode.y) / 2
-
-  return (
-    <g className={`${styles.edge} ${styles[`edge--${state}`]}`}>
-      <line
-        x1={sourceNode.x} y1={sourceNode.y}
-        x2={targetNode.x} y2={targetNode.y}
-        strokeWidth={2}
-      />
-      {/* Weight label */}
-      <text x={mx} y={my - 8} textAnchor="middle" className={styles.edgeWeight}>
-        {edge.weight !== 1 ? edge.weight : ''}
-      </text>
-    </g>
+    </div>
   )
 }

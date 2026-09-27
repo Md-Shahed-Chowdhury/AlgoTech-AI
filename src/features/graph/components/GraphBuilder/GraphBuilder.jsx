@@ -1,44 +1,54 @@
 /**
  * GraphBuilder.jsx
  * ─────────────────────────────────────────────────────────────────────────────
- * Toolbar and interaction controller for building / editing a graph.
- * Renders on top of (or beside) GraphCanvas.
- *
- * STUB — full implementation in next phase.
- *
- * Responsibilities:
- *  - Builder mode switcher (Select / Add Node / Add Edge / Delete / Set Start / Set Goal)
- *  - Edge weight editor trigger
- *  - Selected node/edge inspector
- *  - Preset load / reset controls
- *  - Validation error display
+ * Primary toolbar and interaction control bar for the interactive graph editor.
+ * Includes animated tool switcher, mode hints, graph presets, clear/reset options,
+ * and integration with GraphStatsPanel.
  */
 
-import { Network, Plus, Minus, Move, Flag, Target, Trash2, RotateCcw, LayoutTemplate } from 'lucide-react'
-import { useGraphStore }     from '../../store/useGraphStore.js'
+import { motion } from 'framer-motion'
+import {
+  MousePointer,
+  Plus,
+  Network,
+  Flag,
+  Target,
+  Trash2,
+  RotateCcw,
+  LayoutTemplate,
+  Eraser,
+  Play,
+  Info,
+} from 'lucide-react'
+import { useGraphStore } from '../../store/useGraphStore.js'
 import { useAlgorithmStore } from '../../store/useAlgorithmStore.js'
-import { validateGraph }     from '../../utils/graphUtils.js'
-import { BUILDER_MODE }      from '../../types/graphTypes.js'
+import { validateGraph } from '../../utils/graphUtils.js'
+import { BUILDER_MODE } from '../../types/graphTypes.js'
+import GraphStatsPanel from './GraphStatsPanel.jsx'
 import styles from './GraphBuilder.module.css'
 
 const TOOLS = [
-  { mode: BUILDER_MODE.SELECT,    icon: Move,    label: 'Select' },
-  { mode: BUILDER_MODE.ADD_NODE,  icon: Plus,    label: 'Add Node' },
-  { mode: BUILDER_MODE.ADD_EDGE,  icon: Network, label: 'Add Edge' },
-  { mode: BUILDER_MODE.DELETE,    icon: Trash2,  label: 'Delete' },
-  { mode: BUILDER_MODE.SET_START, icon: Flag,    label: 'Set Start' },
-  { mode: BUILDER_MODE.SET_GOAL,  icon: Target,  label: 'Set Goal' },
+  { mode: BUILDER_MODE.SELECT, icon: MousePointer, label: 'Select & Move', hint: 'Click node or edge to inspect/edit. Drag nodes to move.' },
+  { mode: BUILDER_MODE.ADD_NODE, icon: Plus, label: 'Add Node', hint: 'Click anywhere on the canvas to place a new node.' },
+  { mode: BUILDER_MODE.ADD_EDGE, icon: Network, label: 'Connect Nodes', hint: 'Click source node, then click target node to create an edge.' },
+  { mode: BUILDER_MODE.SET_START, icon: Flag, label: 'Set Start', hint: 'Click a node to mark it as the Start Node.' },
+  { mode: BUILDER_MODE.SET_GOAL, icon: Target, label: 'Set Goal', hint: 'Click a node to mark it as the Goal Node.' },
+  { mode: BUILDER_MODE.DELETE, icon: Trash2, label: 'Delete Tool', hint: 'Click any node or edge to delete it.' },
 ]
 
-export default function GraphBuilder({ onRun }) {
-  const builderMode    = useGraphStore(s => s.builderMode)
+export default function GraphBuilder({ onRun, showStatsPanel = true }) {
+  const builderMode = useGraphStore(s => s.builderMode)
   const setBuilderMode = useGraphStore(s => s.setBuilderMode)
-  const graph          = useGraphStore(s => s.graph)
-  const loadPreset     = useGraphStore(s => s.loadPreset)
-  const resetGraph     = useGraphStore(s => s.resetGraph)
+  const graph = useGraphStore(s => s.graph)
+  const loadPreset = useGraphStore(s => s.loadPreset)
+  const clearGraph = useGraphStore(s => s.clearGraph)
+
+  const pendingEdgeSrcId = useGraphStore(s => s.pendingEdgeSrcId)
 
   const setValidationErrors = useAlgorithmStore(s => s.setValidationErrors)
-  const validationErrors    = useAlgorithmStore(s => s.validationErrors)
+  const validationErrors = useAlgorithmStore(s => s.validationErrors)
+
+  const activeTool = TOOLS.find(t => t.mode === builderMode) || TOOLS[0]
 
   const handleRun = () => {
     const errors = validateGraph(graph)
@@ -51,61 +61,86 @@ export default function GraphBuilder({ onRun }) {
   }
 
   return (
-    <div className={styles.builder}>
-      {/* Tool palette */}
-      <div className={styles.toolbar} role="toolbar" aria-label="Graph builder tools">
-        {TOOLS.map(({ mode, icon: Icon, label }) => (
+    <div className={styles.builderContainer}>
+      {/* Primary Toolbar */}
+      <div className={styles.toolbarHeader}>
+        <div className={styles.toolsGroup} role="toolbar" aria-label="Graph editing tools">
+          {TOOLS.map(({ mode, icon: Icon, label }) => {
+            const isActive = builderMode === mode
+            return (
+              <button
+                key={mode}
+                id={`builder-tool-${mode}`}
+                className={`${styles.toolButton} ${isActive ? styles.toolActive : ''}`}
+                onClick={() => setBuilderMode(mode)}
+                title={label}
+                aria-pressed={isActive}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="activeToolPill"
+                    className={styles.activePillBackground}
+                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                  />
+                )}
+                <Icon size={16} className={styles.toolIcon} />
+                <span className={styles.toolLabel}>{label}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Quick Action Buttons */}
+        <div className={styles.actionsGroup}>
           <button
-            key={mode}
-            id={`builder-tool-${mode}`}
-            className={`${styles.tool} ${builderMode === mode ? styles.toolActive : ''}`}
-            onClick={() => setBuilderMode(mode)}
-            title={label}
-            aria-pressed={builderMode === mode}
+            id="builder-load-preset"
+            className="btn btn-ghost btn-sm"
+            onClick={loadPreset}
+            title="Load sample graph preset"
           >
-            <Icon size={16} />
-            <span className={styles.toolLabel}>{label}</span>
+            <LayoutTemplate size={14} /> Preset Graph
           </button>
-        ))}
+
+          <button
+            id="builder-clear"
+            className="btn btn-ghost btn-sm"
+            onClick={clearGraph}
+            title="Clear all nodes and edges"
+          >
+            <Eraser size={14} /> Clear
+          </button>
+        </div>
       </div>
 
-      {/* Preset / Reset */}
-      <div className={styles.presets}>
-        <button
-          id="builder-load-preset"
-          className="btn btn-ghost"
-          onClick={loadPreset}
-          title="Load a sample graph"
-        >
-          <LayoutTemplate size={14} /> Sample Graph
-        </button>
-        <button
-          id="builder-reset"
-          className="btn btn-ghost"
-          onClick={resetGraph}
-          title="Clear the graph"
-        >
-          <RotateCcw size={14} /> Clear
-        </button>
+      {/* Tool Hint Bar */}
+      <div className={styles.hintBar}>
+        <Info size={14} className={styles.hintIcon} />
+        <span>
+          {pendingEdgeSrcId ? (
+            <strong className={styles.pendingHint}>
+              Source node selected ({graph.nodes[pendingEdgeSrcId]?.label}). Now click target node to create edge!
+            </strong>
+          ) : (
+            activeTool.hint
+          )}
+        </span>
       </div>
 
-      {/* Validation errors */}
-      {validationErrors.length > 0 && (
-        <div className={styles.errors} role="alert">
-          {validationErrors.map((err, i) => (
-            <p key={i} className={styles.error}>{err}</p>
-          ))}
+      {/* Optional Side Telemetry & Inspector Panel */}
+      {showStatsPanel && <GraphStatsPanel />}
+
+      {/* Run Algorithm Button (if onRun is provided) */}
+      {onRun && (
+        <div className={styles.runBar}>
+          <button
+            id="builder-run"
+            className={`btn btn-primary ${styles.runBtn}`}
+            onClick={handleRun}
+          >
+            <Play size={16} fill="currentColor" /> Run Search Algorithm
+          </button>
         </div>
       )}
-
-      {/* Run button */}
-      <button
-        id="builder-run"
-        className={`btn btn-primary ${styles.runBtn}`}
-        onClick={handleRun}
-      >
-        Run Algorithm
-      </button>
     </div>
   )
 }

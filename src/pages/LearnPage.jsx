@@ -1,16 +1,19 @@
+import { useNavigate } from 'react-router-dom'
 import { BookOpen, Play, Layers, ChevronRight } from 'lucide-react'
 import styles from './LearnPage.module.css'
 
 const TOPICS = [
-  { name: 'Bubble Sort',    tag: 'Sorting',   complexity: 'O(n²)',      color: '#6366f1' },
-  { name: 'Merge Sort',     tag: 'Sorting',   complexity: 'O(n log n)', color: '#6366f1' },
-  { name: 'Binary Search',  tag: 'Searching', complexity: 'O(log n)',   color: '#10b981' },
-  { name: 'BFS',            tag: 'Graph',     complexity: 'O(V+E)',     color: '#f59e0b' },
-  { name: 'DFS',            tag: 'Graph',     complexity: 'O(V+E)',     color: '#f59e0b' },
-  { name: 'Quick Sort',     tag: 'Sorting',   complexity: 'O(n log n)', color: '#6366f1' },
+  { id: 'bfs',    name: 'Breadth-First Search (BFS)', tag: 'Graph',     complexity: 'O(V+E)',     color: '#6366f1', route: '/graph/learn/bfs' },
+  { id: 'dfs',    name: 'Depth-First Search (DFS)',   tag: 'Graph',     complexity: 'O(V+E)',     color: '#8b5cf6', route: '/graph/learn/dfs' },
+  { id: 'ucs',    name: 'Uniform Cost Search (UCS)',  tag: 'Graph',     complexity: 'O(V log V)', color: '#10b981', route: '/graph/learn/ucs' },
+  { id: 'greedy', name: 'Greedy Best-First Search',   tag: 'Graph',     complexity: 'O(V log V)', color: '#f59e0b', route: '/graph/learn/greedy' },
+  { id: 'astar',  name: 'A* Search Algorithm',        tag: 'Graph',     complexity: 'O(V log V)', color: '#f43f5e', route: '/graph/learn/astar' },
+  { id: 'bubble', name: 'Bubble Sort',                tag: 'Sorting',   complexity: 'O(n²)',      color: '#64748b' },
 ]
 
 export default function LearnPage() {
+  const navigate = useNavigate()
+
   return (
     <div className={styles.page}>
       {/* Header */}
@@ -28,18 +31,25 @@ export default function LearnPage() {
 
       {/* Grid */}
       <div className={styles.grid}>
-        {TOPICS.map(({ name, tag, complexity, color }) => (
-          <article key={name} className={`card ${styles.card}`}>
+        {TOPICS.map(({ id, name, tag, complexity, color, route }) => (
+          <article key={id} className={`card ${styles.card}`}>
             <div className={styles.cardTop}>
               <span className={styles.tag} style={{ color, background: `${color}18` }}>{tag}</span>
               <span className={styles.complexity}>{complexity}</span>
             </div>
             <h2 className={styles.name}>{name}</h2>
             <div className={styles.cardActions}>
-              <button className={`btn btn-primary ${styles.actionBtn}`} style={{ '--c': color }}>
+              <button
+                className={`btn btn-primary ${styles.actionBtn}`}
+                style={{ '--c': color }}
+                onClick={() => route ? navigate(route) : navigate('/graph/learn')}
+              >
                 <Play size={13} /> Visualize
               </button>
-              <button className={`btn btn-ghost ${styles.actionBtn}`}>
+              <button
+                className={`btn btn-ghost ${styles.actionBtn}`}
+                onClick={() => route ? navigate(route) : navigate('/graph/learn')}
+              >
                 <Layers size={13} /> Explain
               </button>
             </div>

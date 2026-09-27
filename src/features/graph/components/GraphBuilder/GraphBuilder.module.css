@@ -1,67 +1,318 @@
 /* GraphBuilder.module.css */
 
-.builder {
+.builderContainer {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.85rem;
 }
 
-.toolbar {
+.toolbarHeader {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: var(--bg-card);
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-sub);
 }
 
-.tool {
+.toolsGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--bg-elevated);
+  padding: 0.25rem;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+}
+
+.toolButton {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.75rem;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--border-sub);
-  background: var(--bg-elevated);
-  color: var(--text-2);
-  font-size: 0.8rem;
+  gap: 0.4rem;
+  padding: 0.4rem 0.7rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
   font-family: var(--font);
-  font-weight: 500;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: var(--r-sm);
   cursor: pointer;
-  transition: all var(--fast);
+  transition: color var(--fast);
+  z-index: 1;
 }
 
-.tool:hover {
-  background: rgba(255,255,255,0.06);
+.toolButton:hover {
   color: var(--text);
-  border-color: var(--border);
 }
 
 .toolActive {
-  background: rgba(99,102,241,0.18);
-  border-color: var(--accent);
-  color: var(--accent-light);
+  color: #ffffff !important;
+}
+
+.activePillBackground {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  border-radius: var(--r-sm);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  z-index: -1;
+}
+
+.toolIcon {
+  flex-shrink: 0;
 }
 
 .toolLabel {
-  font-size: 0.78rem;
+  white-space: nowrap;
 }
 
-.presets {
+.actionsGroup {
   display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hintBar {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px dashed rgba(99, 102, 241, 0.3);
+  border-radius: var(--r-md);
+  font-size: 0.8rem;
+  color: var(--text-2);
 }
 
-.errors {
-  background: rgba(244,63,94,0.1);
-  border: 1px solid rgba(244,63,94,0.3);
-  border-radius: var(--r-sm);
-  padding: 0.6rem 0.85rem;
+.hintIcon {
+  color: var(--accent);
+  flex-shrink: 0;
 }
 
-.error {
-  font-size: 0.82rem;
-  color: #f87171;
+.pendingHint {
+  color: #f59e0b;
+}
+
+.runBar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.25rem;
 }
 
 .runBtn {
-  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  font-weight: 700;
+}
+
+/* ── GraphStatsPanel Styles ────────────────────────────────────────────────── */
+
+.statsPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-sub);
+  border-radius: var(--r-lg);
+}
+
+.panelTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.statTile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.statHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.statValue {
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 0.2rem;
+}
+
+.statIconNodes { color: #818cf8; }
+.statIconEdges { color: #38bdf8; }
+.statIconStart { color: #10b981; }
+.statIconGoal  { color: #f43f5e; }
+
+.valStart { color: #10b981; }
+.valGoal  { color: #f43f5e; }
+.valEmpty { color: var(--text-muted); font-size: 0.85rem; }
+
+/* Inspector */
+.inspectorContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  min-height: 140px;
+}
+
+.inspectorHeader {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.inspectorBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.itemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.itemBadge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.itemId {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.editFieldForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.fieldLabel {
+  font-size: 0.75rem;
+  color: var(--text-2);
+}
+
+.fieldRow {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.fieldInput {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 0.3rem 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.fieldInput:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.actionButtonGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+}
+
+.btnActiveStart {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #10b981 !important;
+  border-color: #10b981 !important;
+}
+
+.btnActiveGoal {
+  background: rgba(244, 63, 94, 0.2) !important;
+  color: #f43f5e !important;
+  border-color: #f43f5e !important;
+}
+
+.emptyInspector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  text-align: center;
+  gap: 0.4rem;
+  padding: 1.25rem 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.emptyIcon {
+  opacity: 0.5;
+}
+
+/* Validation Status */
+.validationBanner {
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.validationHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.validIcon   { color: #10b981; }
+.validTitle  { font-size: 0.8rem; font-weight: 700; color: #10b981; }
+
+.invalidIcon  { color: #f59e0b; }
+.invalidTitle { font-size: 0.8rem; font-weight: 700; color: #f59e0b; }
+
+.errorList {
+  font-size: 0.75rem;
+  color: var(--text-2);
+  margin-left: 1.25rem;
+  line-height: 1.4;
 }

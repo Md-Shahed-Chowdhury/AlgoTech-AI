@@ -1,8 +1,4 @@
-/* GraphCanvas.module.css
- * Visual styles for the SVG canvas, nodes, and edges.
- * Node state classes map 1:1 with NODE_STATE constants.
- * All color values reference the existing design tokens from index.css.
- */
+/* GraphCanvas.module.css */
 
 .canvasWrap {
   position: relative;
@@ -11,136 +7,268 @@
   background: var(--bg-card);
   overflow: hidden;
   box-shadow: var(--shadow);
+  user-select: none;
 }
 
 .svg {
   display: block;
-  cursor: default;
+  width: 100%;
+  height: 100%;
 }
 
-/* ── Nodes ─────────────────────────────────────────────────────────────────── */
+/* ── Node Visuals ──────────────────────────────────────────────────────────── */
 
-.node circle {
-  stroke-width: 2.5;
-  transition:
-    fill        var(--normal),
-    stroke      var(--normal),
-    r           var(--fast),
-    filter      var(--normal);
+.nodeGroup {
+  transition: filter var(--normal);
 }
 
-.node:hover circle {
-  filter: brightness(1.25);
-  r: 26;
+.nodeCircle {
+  fill: var(--bg-elevated);
+  stroke: var(--border);
+  stroke-width: 2.5px;
+  transition: fill var(--normal), stroke var(--normal), r var(--fast);
 }
 
-/* Node state: unexplored */
-.node--unexplored circle {
-  fill:   var(--bg-elevated);
+.nodeGroup:hover .nodeCircle {
+  stroke: var(--accent);
+  filter: brightness(1.15);
+}
+
+/* State: Unexplored */
+.node--unexplored .nodeCircle {
+  fill: var(--bg-card);
   stroke: var(--border);
 }
 
-/* Node state: frontier */
-.node--frontier circle {
-  fill:   rgba(99,102,241,0.22);
-  stroke: var(--accent);
-  filter: drop-shadow(0 0 8px rgba(99,102,241,0.6));
+/* State: Start Node */
+.node--start .nodeCircle {
+  fill: rgba(16, 185, 129, 0.18);
+  stroke: #10b981;
+  stroke-width: 3px;
+  filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.5));
 }
 
-/* Node state: current */
-.node--current circle {
-  fill:   var(--accent);
-  stroke: var(--accent-light);
-  filter: drop-shadow(0 0 14px rgba(99,102,241,0.9));
-  animation: pulse 0.8s ease-in-out infinite alternate;
-}
-
-/* Node state: visited */
-.node--visited circle {
-  fill:   rgba(99,102,241,0.14);
-  stroke: rgba(99,102,241,0.4);
-}
-
-/* Node state: path */
-.node--path circle {
-  fill:   rgba(245,158,11,0.25);
-  stroke: var(--amber);
-  filter: drop-shadow(0 0 10px rgba(245,158,11,0.7));
-}
-
-/* Node state: start */
-.node--start circle {
-  fill:   rgba(16,185,129,0.25);
-  stroke: var(--emerald);
-  filter: drop-shadow(0 0 10px rgba(16,185,129,0.6));
-}
-
-/* Node state: goal */
-.node--goal circle {
-  fill:   rgba(244,63,94,0.22);
+/* State: Goal Node */
+.node--goal .nodeCircle {
+  fill: rgba(244, 63, 94, 0.18);
   stroke: #f43f5e;
-  filter: drop-shadow(0 0 10px rgba(244,63,94,0.6));
+  stroke-width: 3px;
+  filter: drop-shadow(0 0 10px rgba(244, 63, 94, 0.5));
 }
 
-/* Node state: selected (user hover/click) */
-.node--selected circle {
-  stroke: #fff;
-  stroke-width: 3;
-  filter: brightness(1.3);
+/* State: Frontier */
+.node--frontier .nodeCircle {
+  fill: rgba(99, 102, 241, 0.22);
+  stroke: var(--accent);
+  filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.6));
 }
 
-.nodeLabel {
+/* State: Current */
+.node--current .nodeCircle {
+  fill: var(--accent);
+  stroke: var(--accent-light);
+  filter: drop-shadow(0 0 14px rgba(99, 102, 241, 0.9));
+}
+
+/* State: Visited */
+.node--visited .nodeCircle {
+  fill: rgba(99, 102, 241, 0.12);
+  stroke: rgba(99, 102, 241, 0.4);
+}
+
+/* State: Path */
+.node--path .nodeCircle {
+  fill: rgba(245, 158, 11, 0.25);
+  stroke: var(--amber);
+  filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.7));
+}
+
+/* Selection outline */
+.selected .nodeCircle {
+  stroke: #38bdf8 !important;
+  stroke-width: 3.5px !important;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.7)) !important;
+}
+
+.pendingSrc .nodeCircle {
+  stroke: #f59e0b !important;
+  stroke-width: 3px !important;
+}
+
+/* Typography */
+.nodeText {
   font-family: var(--font);
   font-size: 13px;
   font-weight: 700;
   fill: var(--text);
   pointer-events: none;
-  user-select: none;
 }
 
-.costLabel {
+.costText {
   font-family: var(--mono);
   font-size: 10px;
-  fill: var(--accent-light);
+  font-weight: 600;
+  fill: #818cf8;
   pointer-events: none;
-  user-select: none;
 }
 
-/* ── Edges ─────────────────────────────────────────────────────────────────── */
+/* Glow rings */
+.startGlow {
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
+}
 
-.edge line {
+.goalGlow {
+  filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.6));
+}
+
+.badgeRect {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* ── Edge Visuals ──────────────────────────────────────────────────────────── */
+
+.edgeGroup {
+  transition: opacity var(--normal);
+}
+
+.edgeLine {
   stroke: var(--border);
-  stroke-width: 2;
+  stroke-width: 2.2px;
   transition: stroke var(--normal), stroke-width var(--fast), filter var(--normal);
 }
 
-.edge--traversed line {
-  stroke: rgba(99,102,241,0.4);
-}
-
-.edge--active line {
+.edgeGroup:hover .edgeLine {
   stroke: var(--accent-light);
-  stroke-width: 3;
-  filter: drop-shadow(0 0 6px rgba(99,102,241,0.8));
+  stroke-width: 3px;
+  filter: drop-shadow(0 0 6px rgba(99, 102, 241, 0.5));
 }
 
-.edge--path line {
+.edgeSelected .edgeLine {
+  stroke: #38bdf8;
+  stroke-width: 3.5px;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.7));
+}
+
+.edge--active .edgeLine {
+  stroke: var(--accent-light);
+  stroke-width: 3.5px;
+  filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.8));
+}
+
+.edge--path .edgeLine {
   stroke: var(--amber);
-  stroke-width: 3.5;
-  filter: drop-shadow(0 0 8px rgba(245,158,11,0.7));
+  stroke-width: 4px;
+  filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.8));
 }
 
-.edgeWeight {
+/* Weight Badge */
+.weightBadge {
+  fill: var(--bg-card);
+  stroke: var(--border-sub);
+  stroke-width: 1.5px;
+  transition: fill var(--fast), stroke var(--fast);
+}
+
+.edgeGroup:hover .weightBadge {
+  fill: var(--bg-elevated);
+  stroke: var(--accent);
+}
+
+.weightBadgeSelected {
+  fill: var(--bg-elevated);
+  stroke: #38bdf8 !important;
+}
+
+.weightText {
   font-family: var(--mono);
   font-size: 11px;
+  font-weight: 700;
   fill: var(--text-muted);
-  user-select: none;
   pointer-events: none;
 }
 
-/* ── Animations ────────────────────────────────────────────────────────────── */
+.edgeGroup:hover .weightText {
+  fill: var(--text);
+}
 
-@keyframes pulse {
-  from { filter: drop-shadow(0 0 10px rgba(99,102,241,0.7)); }
-  to   { filter: drop-shadow(0 0 22px rgba(99,102,241,1.0)); }
+/* ── Inline Popover Editor ─────────────────────────────────────────────────── */
+
+.inlineEditorPopover {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  z-index: 50;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 0.5rem 0.65rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(99, 102, 241, 0.2);
+  backdrop-filter: blur(12px);
+}
+
+.inlineEditorHeader {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.inlineEditorInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.inlineInput {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 0.25rem 0.45rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--text);
+  outline: none;
+  width: 90px;
+}
+
+.inlineInput:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+}
+
+.inlineSaveBtn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-sm);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity var(--fast);
+}
+
+.inlineSaveBtn:hover {
+  opacity: 0.9;
+}
+
+.inlineCancelBtn {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.inlineCancelBtn:hover {
+  color: var(--text);
+  border-color: var(--border-sub);
 }

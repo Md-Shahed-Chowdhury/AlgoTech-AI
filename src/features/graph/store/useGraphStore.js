@@ -42,15 +42,27 @@ export const useGraphStore = create((set, get) => ({
   setBuilderMode: (mode) => set({ builderMode: mode, pendingEdgeSrcId: null }),
 
   // Node CRUD
-  addNode: (x, y) => {
-    const id   = nextNodeId()
-    const node = createNode(id, x, y)
-    set(state => ({
-      graph: {
-        ...state.graph,
-        nodes: { ...state.graph.nodes, [id]: node },
-      },
-    }))
+  addNode: (x, y, customLabel = null) => {
+    const id    = nextNodeId()
+    const label = customLabel || id
+    const node  = createNode(id, x, y, { label })
+    
+    set(state => {
+      // If this is the first node, automatically set it as start
+      const count = Object.keys(state.graph.nodes).length
+      const isStart = count === 0
+      const startId = isStart ? id : state.graph.startId
+
+      return {
+        graph: {
+          ...state.graph,
+          nodes: { ...state.graph.nodes, [id]: { ...node, isStart } },
+          startId,
+        },
+        selectedNodeId: id,
+        selectedEdgeId: null,
+      }
+    })
     return id
   },
 
@@ -69,7 +81,11 @@ export const useGraphStore = create((set, get) => ({
       const startId = state.graph.startId === nodeId ? null : state.graph.startId
       const goalId  = state.graph.goalId  === nodeId ? null : state.graph.goalId
 
-      return { graph: { ...state.graph, nodes, edges, startId, goalId } }
+      return {
+        graph: { ...state.graph, nodes, edges, startId, goalId },
+        selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
+        pendingEdgeSrcId: state.pendingEdgeSrcId === nodeId ? null : state.pendingEdgeSrcId,
+      }
     })
   },
 
@@ -86,12 +102,14 @@ export const useGraphStore = create((set, get) => ({
   },
 
   setNodeLabel: (nodeId, label) => {
+    const trimmed = label.trim()
+    if (!trimmed) return
     set(state => ({
       graph: {
         ...state.graph,
         nodes: {
           ...state.graph.nodes,
-          [nodeId]: { ...state.graph.nodes[nodeId], label },
+          [nodeId]: { ...state.graph.nodes[nodeId], label: trimmed },
         },
       },
     }))
@@ -99,13 +117,29 @@ export const useGraphStore = create((set, get) => ({
 
   // Edge CRUD
   addEdge: (sourceId, targetId, weight = 1) => {
+    if (sourceId === targetId) return null // Prevent self-loop
+
+    // Check existing edge in either direction for undirected graphs
+    const state = get()
+    const existing = Object.values(state.graph.edges).find(
+      e => (e.sourceId === sourceId && e.targetId === targetId) ||
+           (e.sourceId === targetId && e.targetId === sourceId)
+    )
+
+    if (existing) {
+      // If already exists, select it
+      set({ selectedEdgeId: existing.id, pendingEdgeSrcId: null })
+      return existing.id
+    }
+
     const id   = nextEdgeId(sourceId, targetId)
-    const edge = createEdge(id, sourceId, targetId, { weight })
+    const edge = createEdge(id, sourceId, targetId, { weight: Math.max(1, Number(weight) || 1) })
     set(state => ({
       graph: {
         ...state.graph,
         edges: { ...state.graph.edges, [id]: edge },
       },
+      selectedEdgeId: id,
       pendingEdgeSrcId: null,
     }))
     return id
@@ -115,17 +149,21 @@ export const useGraphStore = create((set, get) => ({
     set(state => {
       const edges = { ...state.graph.edges }
       delete edges[edgeId]
-      return { graph: { ...state.graph, edges } }
+      return {
+        graph: { ...state.graph, edges },
+        selectedEdgeId: state.selectedEdgeId === edgeId ? null : state.selectedEdgeId,
+      }
     })
   },
 
   setEdgeWeight: (edgeId, weight) => {
+    const num = Math.max(1, Number(weight) || 1)
     set(state => ({
       graph: {
         ...state.graph,
         edges: {
           ...state.graph.edges,
-          [edgeId]: { ...state.graph.edges[edgeId], weight: Number(weight) },
+          [edgeId]: { ...state.graph.edges[edgeId], weight: num },
         },
       },
     }))
@@ -134,6 +172,7 @@ export const useGraphStore = create((set, get) => ({
   toggleEdgeDirected: (edgeId) => {
     set(state => {
       const edge = state.graph.edges[edgeId]
+      if (!edge) return state
       return {
         graph: {
           ...state.graph,
@@ -151,7 +190,7 @@ export const useGraphStore = create((set, get) => ({
     set(state => {
       const nodes = { ...state.graph.nodes }
       // Clear old start
-      if (state.graph.startId) {
+      if (state.graph.startId && nodes[state.graph.startId]) {
         nodes[state.graph.startId] = { ...nodes[state.graph.startId], isStart: false }
       }
       if (nodes[nodeId]) {
@@ -171,7 +210,7 @@ export const useGraphStore = create((set, get) => ({
   setGoal: (nodeId) => {
     set(state => {
       const nodes = { ...state.graph.nodes }
-      if (state.graph.goalId) {
+      if (state.graph.goalId && nodes[state.graph.goalId]) {
         nodes[state.graph.goalId] = { ...nodes[state.graph.goalId], isGoal: false }
       }
       if (nodes[nodeId]) {
@@ -197,6 +236,16 @@ export const useGraphStore = create((set, get) => ({
   setPendingEdgeSrc: (nodeId) => set({ pendingEdgeSrcId: nodeId }),
 
   // Reset
+  clearGraph: () => {
+    _nodeCounter = 0
+    set({
+      graph:            createGraph(),
+      selectedNodeId:   null,
+      selectedEdgeId:   null,
+      pendingEdgeSrcId: null,
+    })
+  },
+
   resetGraph: () => {
     _nodeCounter = 0
     set({
