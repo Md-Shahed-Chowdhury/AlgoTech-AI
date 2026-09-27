@@ -1,0 +1,68 @@
+/* ExplanationPanel.module.css */
+
+.panel {
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.concept {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+.voiceBtn {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.summary {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.detail {
+  font-size: 0.83rem;
+  color: var(--text-2);
+  line-height: 1.7;
+}
+
+.detail strong { color: var(--text); }
+
+.keyPoints {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.keyPoints li {
+  font-size: 0.8rem;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.emptyIcon {
+  color: var(--text-muted);
+  margin: 0 auto;
+}
+
+.empty {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+}

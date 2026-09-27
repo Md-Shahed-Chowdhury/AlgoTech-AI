@@ -1,0 +1,88 @@
+/* PlaybackControls.module.css */
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-sub);
+  border-radius: var(--r-lg);
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.playBtn {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.scrubberRow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.scrubber {
+  flex: 1;
+  height: 4px;
+  appearance: none;
+  background: var(--bg-elevated);
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.scrubber::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(99,102,241,0.6);
+  cursor: pointer;
+}
+
+.scrubber:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.stepLabel {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  min-width: 48px;
+  text-align: right;
+}
+
+.speeds {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: center;
+}
+
+.speedBtn {
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-sub);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 0.75rem;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: all var(--fast);
+}
+
+.speedBtn:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+.speedActive {
+  background: rgba(99,102,241,0.18);
+  border-color: var(--accent);
+  color: var(--accent-light);
+}

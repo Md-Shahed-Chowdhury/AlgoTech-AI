@@ -1,0 +1,146 @@
+/* GraphCanvas.module.css
+ * Visual styles for the SVG canvas, nodes, and edges.
+ * Node state classes map 1:1 with NODE_STATE constants.
+ * All color values reference the existing design tokens from index.css.
+ */
+
+.canvasWrap {
+  position: relative;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-sub);
+  background: var(--bg-card);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.svg {
+  display: block;
+  cursor: default;
+}
+
+/* ── Nodes ─────────────────────────────────────────────────────────────────── */
+
+.node circle {
+  stroke-width: 2.5;
+  transition:
+    fill        var(--normal),
+    stroke      var(--normal),
+    r           var(--fast),
+    filter      var(--normal);
+}
+
+.node:hover circle {
+  filter: brightness(1.25);
+  r: 26;
+}
+
+/* Node state: unexplored */
+.node--unexplored circle {
+  fill:   var(--bg-elevated);
+  stroke: var(--border);
+}
+
+/* Node state: frontier */
+.node--frontier circle {
+  fill:   rgba(99,102,241,0.22);
+  stroke: var(--accent);
+  filter: drop-shadow(0 0 8px rgba(99,102,241,0.6));
+}
+
+/* Node state: current */
+.node--current circle {
+  fill:   var(--accent);
+  stroke: var(--accent-light);
+  filter: drop-shadow(0 0 14px rgba(99,102,241,0.9));
+  animation: pulse 0.8s ease-in-out infinite alternate;
+}
+
+/* Node state: visited */
+.node--visited circle {
+  fill:   rgba(99,102,241,0.14);
+  stroke: rgba(99,102,241,0.4);
+}
+
+/* Node state: path */
+.node--path circle {
+  fill:   rgba(245,158,11,0.25);
+  stroke: var(--amber);
+  filter: drop-shadow(0 0 10px rgba(245,158,11,0.7));
+}
+
+/* Node state: start */
+.node--start circle {
+  fill:   rgba(16,185,129,0.25);
+  stroke: var(--emerald);
+  filter: drop-shadow(0 0 10px rgba(16,185,129,0.6));
+}
+
+/* Node state: goal */
+.node--goal circle {
+  fill:   rgba(244,63,94,0.22);
+  stroke: #f43f5e;
+  filter: drop-shadow(0 0 10px rgba(244,63,94,0.6));
+}
+
+/* Node state: selected (user hover/click) */
+.node--selected circle {
+  stroke: #fff;
+  stroke-width: 3;
+  filter: brightness(1.3);
+}
+
+.nodeLabel {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--text);
+  pointer-events: none;
+  user-select: none;
+}
+
+.costLabel {
+  font-family: var(--mono);
+  font-size: 10px;
+  fill: var(--accent-light);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Edges ─────────────────────────────────────────────────────────────────── */
+
+.edge line {
+  stroke: var(--border);
+  stroke-width: 2;
+  transition: stroke var(--normal), stroke-width var(--fast), filter var(--normal);
+}
+
+.edge--traversed line {
+  stroke: rgba(99,102,241,0.4);
+}
+
+.edge--active line {
+  stroke: var(--accent-light);
+  stroke-width: 3;
+  filter: drop-shadow(0 0 6px rgba(99,102,241,0.8));
+}
+
+.edge--path line {
+  stroke: var(--amber);
+  stroke-width: 3.5;
+  filter: drop-shadow(0 0 8px rgba(245,158,11,0.7));
+}
+
+.edgeWeight {
+  font-family: var(--mono);
+  font-size: 11px;
+  fill: var(--text-muted);
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ── Animations ────────────────────────────────────────────────────────────── */
+
+@keyframes pulse {
+  from { filter: drop-shadow(0 0 10px rgba(99,102,241,0.7)); }
+  to   { filter: drop-shadow(0 0 22px rgba(99,102,241,1.0)); }
+}

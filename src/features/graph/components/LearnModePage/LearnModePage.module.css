@@ -1,0 +1,80 @@
+/* LearnModePage.module.css */
+
+.page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.header { text-align: center; }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  background: rgba(99,102,241,0.12);
+  border: 1px solid rgba(99,102,241,0.25);
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  margin-bottom: 0.75rem;
+}
+
+.title {
+  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+  font-weight: 900;
+  letter-spacing: -1px;
+  margin-bottom: 0.5rem;
+}
+
+.sub {
+  color: var(--text-2);
+  font-size: 0.9rem;
+  max-width: 560px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+/* 3-column layout */
+.layout {
+  display: grid;
+  grid-template-columns: 220px 1fr 280px;
+  gap: 1.1rem;
+  align-items: start;
+}
+
+.sidebar {
+  position: sticky;
+  top: 80px;
+}
+
+.canvasArea {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.panels {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  position: sticky;
+  top: 80px;
+}
+
+/* Responsive: collapse to single column on small screens */
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .sidebar, .panels {
+    position: static;
+  }
+}
