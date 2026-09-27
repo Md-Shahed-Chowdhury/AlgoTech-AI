@@ -19,14 +19,15 @@
 }
 
 .toolsGroup {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.35rem;
   background: var(--bg-elevated);
-  padding: 0.25rem;
+  padding: 0.35rem;
   border-radius: var(--r-md);
   border: 1px solid var(--border);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .toolButton {

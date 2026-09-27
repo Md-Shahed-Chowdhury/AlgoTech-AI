@@ -1,13 +1,13 @@
 import { useNavigate } from 'react-router-dom'
-import { BookOpen, Play, Layers, ChevronRight } from 'lucide-react'
+import { BookOpen, ClipboardList } from 'lucide-react'
 import styles from './LearnPage.module.css'
 
 const TOPICS = [
-  { id: 'bfs',    name: 'Breadth-First Search (BFS)', tag: 'Graph Search', complexity: 'O(V+E)',     color: '#6366f1', route: '/graph/learn/bfs' },
-  { id: 'dfs',    name: 'Depth-First Search (DFS)',   tag: 'Graph Search', complexity: 'O(V+E)',     color: '#8b5cf6', route: '/graph/learn/dfs' },
-  { id: 'ucs',    name: 'Uniform Cost Search (UCS)',  tag: 'Graph Search', complexity: 'O(V log V)', color: '#10b981', route: '/graph/learn/ucs' },
-  { id: 'greedy', name: 'Greedy Best-First Search',   tag: 'Graph Search', complexity: 'O(V log V)', color: '#f59e0b', route: '/graph/learn/greedy' },
-  { id: 'astar',  name: 'A* Search Algorithm',        tag: 'Graph Search', complexity: 'O(V log V)', color: '#f43f5e', route: '/graph/learn/astar' },
+  { id: 'bfs',    name: 'Breadth-First Search (BFS)', tag: 'Graph Search', complexity: 'O(V+E)',     color: '#6366f1' },
+  { id: 'dfs',    name: 'Depth-First Search (DFS)',   tag: 'Graph Search', complexity: 'O(V+E)',     color: '#8b5cf6' },
+  { id: 'ucs',    name: 'Uniform Cost Search (UCS)',  tag: 'Graph Search', complexity: 'O(V log V)', color: '#10b981' },
+  { id: 'greedy', name: 'Greedy Best-First Search',   tag: 'Graph Search', complexity: 'O(V log V)', color: '#f59e0b' },
+  { id: 'astar',  name: 'A* Search Algorithm',        tag: 'Graph Search', complexity: 'O(V log V)', color: '#f43f5e' },
 ]
 
 export default function LearnPage() {
@@ -24,13 +24,13 @@ export default function LearnPage() {
           Master <span className="gradient-text">Algorithms</span>
         </h1>
         <p className={styles.sub}>
-          Pick any algorithm below to study it with interactive animations and step-by-step explanations.
+          Pick any algorithm below to study it with interactive animations, step-by-step explanations, or test your knowledge in Exam mode.
         </p>
       </div>
 
       {/* Grid */}
       <div className={styles.grid}>
-        {TOPICS.map(({ id, name, tag, complexity, color, route }) => (
+        {TOPICS.map(({ id, name, tag, complexity, color }) => (
           <article key={id} className={`card ${styles.card}`}>
             <div className={styles.cardTop}>
               <span className={styles.tag} style={{ color, background: `${color}18` }}>{tag}</span>
@@ -41,15 +41,15 @@ export default function LearnPage() {
               <button
                 className={`btn btn-primary ${styles.actionBtn}`}
                 style={{ '--c': color }}
-                onClick={() => route ? navigate(route) : navigate('/graph/learn')}
+                onClick={() => navigate(`/graph/learn/${id}`)}
               >
-                <Play size={13} /> Visualize
+                <BookOpen size={13} /> Learn
               </button>
               <button
                 className={`btn btn-ghost ${styles.actionBtn}`}
-                onClick={() => route ? navigate(route) : navigate('/graph/learn')}
+                onClick={() => navigate(`/graph/exam/${id}`)}
               >
-                <Layers size={13} /> Explain
+                <ClipboardList size={13} /> Give Test
               </button>
             </div>
           </article>

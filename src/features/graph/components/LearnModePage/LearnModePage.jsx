@@ -1,33 +1,30 @@
 /**
  * LearnModePage.jsx
  * ─────────────────────────────────────────────────────────────────────────────
- * The Graph Search Learn Mode page.
- * Composes: GraphBuilder + GraphCanvas + PlaybackControls +
- *           AlgorithmStatePanel + MetricsPanel + ExplanationPanel
- *
- * Route: /graph/learn/:algorithmId  (registered in App.jsx in next phase)
- *
- * STUB — layout shell only, no full UI yet.
+ * Graph Search Learn Mode Page.
+ * Master 2-column layout:
+ *   - Left: GraphBuilder (toolbar, hints, telemetry, node/edge inspector)
+ *   - Right: GraphCanvas + PlaybackControls + Info Panels Grid
  */
 
 import { BookOpen } from 'lucide-react'
 import { useParams } from 'react-router-dom'
-import { useGraphStore }     from '../../store/useGraphStore.js'
+import { useGraphStore } from '../../store/useGraphStore.js'
 import { useAlgorithmStore } from '../../store/useAlgorithmStore.js'
-import { ALGORITHM_META }    from '../../types/graphTypes.js'
+import { ALGORITHM_META } from '../../types/graphTypes.js'
 
-import GraphCanvas        from '../GraphCanvas/GraphCanvas.jsx'
-import GraphBuilder       from '../GraphBuilder/GraphBuilder.jsx'
-import PlaybackControls   from '../PlaybackControls/PlaybackControls.jsx'
+import GraphCanvas from '../GraphCanvas/GraphCanvas.jsx'
+import GraphBuilder from '../GraphBuilder/GraphBuilder.jsx'
+import PlaybackControls from '../PlaybackControls/PlaybackControls.jsx'
 import AlgorithmStatePanel from '../AlgorithmStatePanel/AlgorithmStatePanel.jsx'
-import MetricsPanel       from '../MetricsPanel/MetricsPanel.jsx'
-import ExplanationPanel   from '../ExplanationPanel/ExplanationPanel.jsx'
+import MetricsPanel from '../MetricsPanel/MetricsPanel.jsx'
+import ExplanationPanel from '../ExplanationPanel/ExplanationPanel.jsx'
 
 import styles from './LearnModePage.module.css'
 
 export default function LearnModePage() {
   const { algorithmId } = useParams()
-  const graph   = useGraphStore(s => s.graph)
+  const graph = useGraphStore(s => s.graph)
   const prepare = useAlgorithmStore(s => s.prepare)
   const setAlgorithm = useAlgorithmStore(s => s.setAlgorithm)
 
@@ -47,32 +44,33 @@ export default function LearnModePage() {
           <BookOpen size={13} /> Learn Mode
         </div>
         <h1 className={styles.title}>
-          <span className="gradient-text">{meta?.name ?? 'Graph Search'}</span>
+          <span className="gradient-text">{meta?.name ?? 'Graph Search Simulator'}</span>
         </h1>
         <p className={styles.sub}>
-          {meta?.description ?? 'Build a graph, run the algorithm, and step through each decision.'}
+          {meta?.description ?? 'Build a graph manually, run the search algorithm, and step through each decision.'}
         </p>
       </div>
 
       {/* ── Main layout ─────────────────────────────────────────────────── */}
       <div className={styles.layout}>
-        {/* Left sidebar: builder tools */}
+        {/* Left column: builder toolbar, tools, hints & inspector */}
         <aside className={styles.sidebar}>
           <GraphBuilder onRun={handleRun} />
         </aside>
 
-        {/* Centre: canvas + playback */}
-        <main className={styles.canvasArea}>
-          <GraphCanvas width={760} height={480} />
-          <PlaybackControls />
-        </main>
+        {/* Right column: canvas area + playback + info panels */}
+        <main className={styles.mainContent}>
+          <div className={styles.canvasArea}>
+            <GraphCanvas width={850} height={500} />
+            <PlaybackControls />
+          </div>
 
-        {/* Right sidebar: panels */}
-        <aside className={styles.panels}>
-          <ExplanationPanel />
-          <AlgorithmStatePanel />
-          <MetricsPanel />
-        </aside>
+          <div className={styles.panelsGrid}>
+            <ExplanationPanel />
+            <AlgorithmStatePanel />
+            <MetricsPanel />
+          </div>
+        </main>
       </div>
     </div>
   )
