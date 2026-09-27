@@ -38,9 +38,9 @@ export function runAlgorithm(algorithmId, graph, options = {}) {
     case ALGORITHM.UCS:
       return runUCS(graph)
     case ALGORITHM.GREEDY:
-      return runGreedy(graph, heuristicFn)
+      return runGreedy(graph, options)
     case ALGORITHM.ASTAR:
-      return runAStar(graph, heuristicFn)
+      return runAStar(graph, options)
     default:
       console.warn(`[algorithmEngine] Unknown algorithm: "${algorithmId}"`)
       return []

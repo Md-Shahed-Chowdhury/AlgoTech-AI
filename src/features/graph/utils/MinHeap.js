@@ -51,13 +51,20 @@ export class MinHeap {
 
   /** Return a sorted copy of all items (does not mutate the heap). */
   toArray() {
-    return [...this._heap].sort((a, b) => a.priority - b.priority)
+    return [...this._heap].sort((a, b) => this._compare(a, b))
+  }
+
+  _compare(a, b) {
+    if (a.priority !== b.priority) {
+      return a.priority - b.priority
+    }
+    return String(a.id).localeCompare(String(b.id))
   }
 
   _bubbleUp(i) {
     while (i > 0) {
       const parent = Math.floor((i - 1) / 2)
-      if (this._heap[parent].priority <= this._heap[i].priority) break
+      if (this._compare(this._heap[parent], this._heap[i]) <= 0) break
       ;[this._heap[parent], this._heap[i]] = [this._heap[i], this._heap[parent]]
       i = parent
     }
@@ -69,8 +76,8 @@ export class MinHeap {
       let smallest = i
       const l = 2 * i + 1
       const r = 2 * i + 2
-      if (l < n && this._heap[l].priority < this._heap[smallest].priority) smallest = l
-      if (r < n && this._heap[r].priority < this._heap[smallest].priority) smallest = r
+      if (l < n && this._compare(this._heap[l], this._heap[smallest]) < 0) smallest = l
+      if (r < n && this._compare(this._heap[r], this._heap[smallest]) < 0) smallest = r
       if (smallest === i) break
       ;[this._heap[smallest], this._heap[i]] = [this._heap[i], this._heap[smallest]]
       i = smallest
