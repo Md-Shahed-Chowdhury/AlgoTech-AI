@@ -6,7 +6,7 @@
  * and inline editing popover. Handles drag-and-drop node placement.
  */
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGraphStore } from '../../store/useGraphStore.js'
 import { useAlgorithmStore } from '../../store/useAlgorithmStore.js'
@@ -102,16 +102,41 @@ export default function GraphCanvas({ readOnly = false, width = 850, height = 55
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [inlineEditorTarget, setInlineEditorTarget] = useState(null) // { type, id, x, y, initialValue }
 
-  // Convert client coordinates to SVG canvas space
-  const getCanvasCoords = useCallback((e) => {
+  // Convert screen client coordinates (clientX, clientY) to SVG viewBox space
+  const getCanvasCoords = useCallback((clientX, clientY) => {
     if (!svgRef.current) return { x: 0, y: 0 }
-    const rect = svgRef.current.getBoundingClientRect()
-    const scaleX = width / rect.width
-    const scaleY = height / rect.height
-    const x = Math.round(Math.max(25, Math.min(width - 25, (e.clientX - rect.left) * scaleX)))
-    const y = Math.round(Math.max(25, Math.min(height - 25, (e.clientY - rect.top) * scaleY)))
-    return { x, y }
+    const svg = svgRef.current
+    const pt = svg.createSVGPoint()
+    pt.x = clientX
+    pt.y = clientY
+    const svgP = pt.matrixTransform(svg.getScreenCTM().inverse())
+    return {
+      x: Math.round(Math.max(30, Math.min(width - 30, svgP.x))),
+      y: Math.round(Math.max(30, Math.min(height - 30, svgP.y)))
+    }
   }, [width, height])
+
+  // Window-level PointerMove and PointerUp listeners while dragging a node
+  useEffect(() => {
+    if (!dragNodeId || readOnly) return
+
+    const handleWindowPointerMove = (e) => {
+      const { x, y } = getCanvasCoords(e.clientX, e.clientY)
+      moveNode(dragNodeId, x, y)
+    }
+
+    const handleWindowPointerUp = () => {
+      setDragNodeId(null)
+    }
+
+    window.addEventListener('pointermove', handleWindowPointerMove)
+    window.addEventListener('pointerup', handleWindowPointerUp)
+
+    return () => {
+      window.removeEventListener('pointermove', handleWindowPointerMove)
+      window.removeEventListener('pointerup', handleWindowPointerUp)
+    }
+  }, [dragNodeId, readOnly, getCanvasCoords, moveNode])
 
   // Canvas pointer down (Clicking canvas background)
   const handleCanvasPointerDown = useCallback((e) => {
@@ -119,7 +144,7 @@ export default function GraphCanvas({ readOnly = false, width = 850, height = 55
     // Only react if target is the SVG background or grid
     if (e.target.tagName !== 'svg' && e.target.tagName !== 'rect') return
 
-    const { x, y } = getCanvasCoords(e)
+    const { x, y } = getCanvasCoords(e.clientX, e.clientY)
 
     if (builderMode === BUILDER_MODE.ADD_NODE) {
       addNode(x, y)
@@ -129,28 +154,21 @@ export default function GraphCanvas({ readOnly = false, width = 850, height = 55
     }
   }, [readOnly, builderMode, getCanvasCoords, addNode, clearSelection])
 
-  // Canvas pointer move (tracks dragging node or rubber-band edge)
-  const handlePointerMove = useCallback((e) => {
-    const { x, y } = getCanvasCoords(e)
-    setMousePos({ x, y })
-
-    if (dragNodeId && !readOnly) {
-      moveNode(dragNodeId, x, y)
+  // Canvas pointer move (tracks rubber-band edge endpoint)
+  const handleSvgPointerMove = useCallback((e) => {
+    if (pendingEdgeSrcId) {
+      const { x, y } = getCanvasCoords(e.clientX, e.clientY)
+      setMousePos({ x, y })
     }
-  }, [dragNodeId, readOnly, getCanvasCoords, moveNode])
+  }, [pendingEdgeSrcId, getCanvasCoords])
 
-  // Pointer up (releases drag)
-  const handlePointerUp = useCallback(() => {
-    setDragNodeId(null)
-  }, [])
-
-  // Node interaction logic
+  // Node pointer down (starts drag and selects node)
   const handleNodePointerDown = (nodeId, e) => {
     if (readOnly) return
     e.stopPropagation()
 
-    if (builderMode === BUILDER_MODE.SELECT || builderMode === BUILDER_MODE.MOVE_NODE) {
-      selectNode(nodeId)
+    selectNode(nodeId)
+    if (builderMode === BUILDER_MODE.SELECT || builderMode === BUILDER_MODE.ADD_NODE || builderMode === BUILDER_MODE.MOVE_NODE) {
       setDragNodeId(nodeId)
     }
   }
@@ -246,8 +264,7 @@ export default function GraphCanvas({ readOnly = false, width = 850, height = 55
         height={height}
         viewBox={`0 0 ${width} ${height}`}
         onPointerDown={handleCanvasPointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
+        onPointerMove={handleSvgPointerMove}
         aria-label="Interactive graph canvas"
       >
         <defs>

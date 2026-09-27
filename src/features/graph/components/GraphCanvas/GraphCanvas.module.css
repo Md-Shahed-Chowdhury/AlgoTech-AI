@@ -166,12 +166,15 @@
   fill: var(--bg-card);
   stroke: var(--border-sub);
   stroke-width: 1.5px;
-  transition: fill var(--fast), stroke var(--fast);
+  transition: fill var(--fast), stroke var(--fast), transform var(--fast);
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .edgeGroup:hover .weightBadge {
   fill: var(--bg-elevated);
   stroke: var(--accent);
+  transform: scale(1.12);
 }
 
 .weightBadgeSelected {

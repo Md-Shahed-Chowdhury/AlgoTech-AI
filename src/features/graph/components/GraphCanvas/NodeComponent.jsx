@@ -29,14 +29,7 @@ function NodeComponent({
   const spring = { type: 'spring', stiffness: 450, damping: 25 }
 
   return (
-    <motion.g
-      layout
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0, opacity: 0 }}
-      whileHover={readOnly ? {} : { scale: 1.1 }}
-      whileTap={readOnly ? {} : { scale: 0.95 }}
-      transition={spring}
+    <g
       transform={`translate(${node.x}, ${node.y})`}
       onPointerDown={onPointerDown}
       onClick={onClick}
@@ -105,7 +98,7 @@ function NodeComponent({
           </text>
         </g>
       )}
-    </motion.g>
+    </g>
   )
 }
 

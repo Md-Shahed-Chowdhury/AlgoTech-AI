@@ -3,12 +3,11 @@ import { BookOpen, Play, Layers, ChevronRight } from 'lucide-react'
 import styles from './LearnPage.module.css'
 
 const TOPICS = [
-  { id: 'bfs',    name: 'Breadth-First Search (BFS)', tag: 'Graph',     complexity: 'O(V+E)',     color: '#6366f1', route: '/graph/learn/bfs' },
-  { id: 'dfs',    name: 'Depth-First Search (DFS)',   tag: 'Graph',     complexity: 'O(V+E)',     color: '#8b5cf6', route: '/graph/learn/dfs' },
-  { id: 'ucs',    name: 'Uniform Cost Search (UCS)',  tag: 'Graph',     complexity: 'O(V log V)', color: '#10b981', route: '/graph/learn/ucs' },
-  { id: 'greedy', name: 'Greedy Best-First Search',   tag: 'Graph',     complexity: 'O(V log V)', color: '#f59e0b', route: '/graph/learn/greedy' },
-  { id: 'astar',  name: 'A* Search Algorithm',        tag: 'Graph',     complexity: 'O(V log V)', color: '#f43f5e', route: '/graph/learn/astar' },
-  { id: 'bubble', name: 'Bubble Sort',                tag: 'Sorting',   complexity: 'O(n²)',      color: '#64748b' },
+  { id: 'bfs',    name: 'Breadth-First Search (BFS)', tag: 'Graph Search', complexity: 'O(V+E)',     color: '#6366f1', route: '/graph/learn/bfs' },
+  { id: 'dfs',    name: 'Depth-First Search (DFS)',   tag: 'Graph Search', complexity: 'O(V+E)',     color: '#8b5cf6', route: '/graph/learn/dfs' },
+  { id: 'ucs',    name: 'Uniform Cost Search (UCS)',  tag: 'Graph Search', complexity: 'O(V log V)', color: '#10b981', route: '/graph/learn/ucs' },
+  { id: 'greedy', name: 'Greedy Best-First Search',   tag: 'Graph Search', complexity: 'O(V log V)', color: '#f59e0b', route: '/graph/learn/greedy' },
+  { id: 'astar',  name: 'A* Search Algorithm',        tag: 'Graph Search', complexity: 'O(V log V)', color: '#f43f5e', route: '/graph/learn/astar' },
 ]
 
 export default function LearnPage() {

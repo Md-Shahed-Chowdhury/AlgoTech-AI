@@ -84,9 +84,7 @@ function EdgeComponent({
       )}
 
       {/* Editable Weight Pill Badge */}
-      <motion.g
-        whileHover={readOnly ? {} : { scale: 1.15 }}
-        whileTap={readOnly ? {} : { scale: 0.95 }}
+      <g
         transform={`translate(${mx}, ${my})`}
         onClick={onClick}
         onDoubleClick={onDoubleClick}
@@ -107,7 +105,7 @@ function EdgeComponent({
         >
           {edge.weight}
         </text>
-      </motion.g>
+      </g>
     </g>
   )
 }
