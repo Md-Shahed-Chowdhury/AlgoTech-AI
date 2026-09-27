@@ -1,95 +1,251 @@
 /**
  * AlgorithmStatePanel.jsx
  * ─────────────────────────────────────────────────────────────────────────────
- * Displays the current algorithm data structure state:
- *  - Queue / Stack / Priority Queue contents
- *  - Visited set
- *  - Parent map
- *  - Current step index & total steps
- *
- * STUB — full rendering in next phase.
+ * Algorithm State Panel rendering real-time step data structures:
+ *  - Current Node, Selected Node, Visited Set, Frontier Set, Discovered Nodes, Current Path
+ *  - Algorithm-specific data structure details:
+ *      • BFS: FIFO Queue (queueBefore → queueAfter)
+ *      • DFS: LIFO Stack (stackBefore → stackAfter)
+ *      • UCS: Priority Queue table with g(n) path cost
+ *      • Greedy: Priority Queue table with h(n) heuristic estimate
+ *      • A*: Priority Queue table with g(n), h(n), and f(n) = g(n) + h(n)
  */
 
+import { motion } from 'framer-motion'
+import {
+  Circle,
+  Eye,
+  Layers,
+  ListOrdered,
+  Footprints,
+  Compass,
+  ArrowRight,
+} from 'lucide-react'
 import { useAlgorithmStore } from '../../store/useAlgorithmStore.js'
-import { ALGORITHM_META }    from '../../types/graphTypes.js'
+import { ALGORITHM, ALGORITHM_META } from '../../types/graphTypes.js'
 import styles from './AlgorithmStatePanel.module.css'
 
 export default function AlgorithmStatePanel() {
-  const currentStep       = useAlgorithmStore(s => s.steps[s.currentStepIndex] ?? null)
+  const currentStep = useAlgorithmStore(s => s.steps[s.currentStepIndex] ?? null)
   const selectedAlgorithm = useAlgorithmStore(s => s.selectedAlgorithm)
-  const currentStepIndex  = useAlgorithmStore(s => s.currentStepIndex)
-  const totalSteps        = useAlgorithmStore(s => s.steps.length)
+  const currentStepIndex = useAlgorithmStore(s => s.currentStepIndex)
+  const totalSteps = useAlgorithmStore(s => s.steps.length)
 
   const meta = ALGORITHM_META[selectedAlgorithm]
 
   if (!currentStep) {
     return (
       <div className={`card ${styles.panel}`}>
-        <p className={styles.empty}>Run the algorithm to see step-by-step state.</p>
+        <div className={styles.emptyState}>
+          <Compass size={24} className={styles.emptyIcon} />
+          <p>Run the algorithm simulation to inspect step-by-step state changes.</p>
+        </div>
       </div>
     )
   }
 
+  const {
+    currentNode,
+    selectedNode,
+    visitedNodes,
+    frontierNodes,
+    unexploredNodes,
+    discoveredNodes,
+    currentPath,
+    frontierDetail,
+    algorithmSpecificState,
+    gCost,
+    hCost,
+    fCost,
+  } = currentStep
+
   return (
     <div className={`card ${styles.panel}`}>
+      {/* Header */}
       <div className={styles.header}>
-        <span className={styles.algoTag} style={{ color: meta?.color }}>
-          {meta?.shortName}
-        </span>
+        <div className={styles.headerLeft}>
+          <span className={styles.algoTag} style={{ color: meta?.color, background: `${meta?.color}18` }}>
+            {meta?.shortName}
+          </span>
+          <span className={styles.panelTitleText}>Algorithm State</span>
+        </div>
         <span className={styles.stepCounter}>
           Step {currentStepIndex + 1} / {totalSteps}
         </span>
       </div>
 
-      {/* Frontier */}
-      <Section title="Frontier" items={currentStep.frontierNodes} color="var(--accent)" />
+      {/* Nodes Summary (Current, Selected, Path) */}
+      <div className={styles.nodeSummaryGrid}>
+        <div className={styles.nodeSummaryTile}>
+          <span className={styles.tileLabel}>Current Node</span>
+          <span className={`${styles.tileValue} ${currentNode ? styles.valCurrent : styles.valEmpty}`}>
+            {currentNode ?? 'None'}
+          </span>
+        </div>
 
-      {/* Visited */}
-      <Section title="Visited" items={currentStep.visitedNodes} color="var(--text-muted)" />
+        <div className={styles.nodeSummaryTile}>
+          <span className={styles.tileLabel}>Selected Node</span>
+          <span className={`${styles.tileValue} ${selectedNode ? styles.valSelected : styles.valEmpty}`}>
+            {selectedNode ?? 'None'}
+          </span>
+        </div>
+      </div>
 
-      {/* Priority detail (UCS / Greedy / A*) */}
-      {currentStep.frontierDetail?.length > 0 && (
+      {/* Current Path Breadcrumbs */}
+      {currentPath && currentPath.length > 0 && (
         <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Priority Queue</h3>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Node</th>
-                {currentStep.gCost && Object.keys(currentStep.gCost).length > 0 && <th>g</th>}
-                {currentStep.hCost && Object.keys(currentStep.hCost).length > 0 && <th>h</th>}
-                <th>priority</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentStep.frontierDetail.map(entry => (
-                <tr key={entry.nodeId}>
-                  <td>{entry.nodeId}</td>
-                  {entry.g !== undefined && <td>{typeof entry.g === 'number' ? entry.g.toFixed(1) : entry.g}</td>}
-                  {entry.h !== undefined && <td>{typeof entry.h === 'number' ? entry.h.toFixed(2) : entry.h}</td>}
-                  <td>{typeof entry.priority === 'number' ? entry.priority.toFixed(2) : entry.priority}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <h3 className={styles.sectionTitle}>
+            <Footprints size={13} /> Current Path
+          </h3>
+          <div className={styles.pathTrail}>
+            {currentPath.map((id, idx) => (
+              <span key={id} className={styles.pathStep}>
+                <span className={styles.pathNodeChip}>{id}</span>
+                {idx < currentPath.length - 1 && <ArrowRight size={11} className={styles.pathArrow} />}
+              </span>
+            ))}
+          </div>
         </div>
       )}
-    </div>
-  )
-}
 
-function Section({ title, items, color }) {
-  return (
-    <div className={styles.section}>
-      <h3 className={styles.sectionTitle}>{title}</h3>
-      <div className={styles.chips}>
-        {items.length === 0
-          ? <span className={styles.empty}>—</span>
-          : items.map(id => (
-              <span key={id} className={styles.chip} style={{ borderColor: color }}>
+      {/* Algorithm-Specific Data Structure Section (Queue / Stack / Priority Queue) */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>
+          <ListOrdered size={13} />{' '}
+          {selectedAlgorithm === ALGORITHM.BFS && 'FIFO Queue'}
+          {selectedAlgorithm === ALGORITHM.DFS && 'LIFO Stack'}
+          {selectedAlgorithm !== ALGORITHM.BFS && selectedAlgorithm !== ALGORITHM.DFS && 'Priority Queue'}
+        </h3>
+
+        {/* BFS Queue Display */}
+        {selectedAlgorithm === ALGORITHM.BFS && (
+          <div className={styles.dsContainer}>
+            <div className={styles.dsRow}>
+              <span className={styles.dsSubLabel}>Queue Contents:</span>
+              <div className={styles.chipsRow}>
+                {(algorithmSpecificState?.queueAfter ?? frontierNodes).length === 0 ? (
+                  <span className={styles.emptyText}>Empty Queue</span>
+                ) : (
+                  (algorithmSpecificState?.queueAfter ?? frontierNodes).map((id, idx) => (
+                    <motion.span
+                      key={`${id}-${idx}`}
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
+                      className={styles.queueChip}
+                    >
+                      {id}
+                    </motion.span>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* DFS Stack Display */}
+        {selectedAlgorithm === ALGORITHM.DFS && (
+          <div className={styles.dsContainer}>
+            <div className={styles.dsRow}>
+              <span className={styles.dsSubLabel}>Stack Top → Bottom:</span>
+              <div className={styles.chipsRow}>
+                {(algorithmSpecificState?.stackAfter ?? frontierNodes).length === 0 ? (
+                  <span className={styles.emptyText}>Empty Stack</span>
+                ) : (
+                  [...(algorithmSpecificState?.stackAfter ?? frontierNodes)].reverse().map((id, idx) => (
+                    <motion.span
+                      key={`${id}-${idx}`}
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
+                      className={styles.stackChip}
+                    >
+                      {id}
+                    </motion.span>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* UCS / Greedy / A* Priority Queue Table */}
+        {selectedAlgorithm !== ALGORITHM.BFS && selectedAlgorithm !== ALGORITHM.DFS && (
+          <div className={styles.tableWrapper}>
+            {frontierDetail && frontierDetail.length > 0 ? (
+              <table className={styles.pqTable}>
+                <thead>
+                  <tr>
+                    <th>Node</th>
+                    {selectedAlgorithm === ALGORITHM.UCS && <th>g(n)</th>}
+                    {selectedAlgorithm === ALGORITHM.GREEDY && <th>h(n)</th>}
+                    {selectedAlgorithm === ALGORITHM.ASTAR && (
+                      <>
+                        <th>g(n)</th>
+                        <th>h(n)</th>
+                        <th>f(n)</th>
+                      </>
+                    )}
+                    <th>Priority</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {frontierDetail.map(entry => (
+                    <tr key={entry.nodeId} className={entry.nodeId === currentNode ? styles.activeRow : ''}>
+                      <td className={styles.nodeCell}>{entry.nodeId}</td>
+                      {selectedAlgorithm === ALGORITHM.UCS && <td>{gCost[entry.nodeId] ?? entry.g ?? '—'}</td>}
+                      {selectedAlgorithm === ALGORITHM.GREEDY && <td>{hCost[entry.nodeId] ?? entry.h ?? '—'}</td>}
+                      {selectedAlgorithm === ALGORITHM.ASTAR && (
+                        <>
+                          <td>{gCost[entry.nodeId] ?? entry.g ?? '—'}</td>
+                          <td>{hCost[entry.nodeId] ?? entry.h ?? '—'}</td>
+                          <td className={styles.highlightCol}>{fCost[entry.nodeId] ?? entry.f ?? '—'}</td>
+                        </>
+                      )}
+                      <td className={styles.priorityCell}>{entry.priority}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <span className={styles.emptyText}>Frontier is empty</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Visited / Explored Set */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>
+          <Circle size={13} className={styles.visitedIcon} /> Visited / Explored ({visitedNodes.length})
+        </h3>
+        <div className={styles.chipsRow}>
+          {visitedNodes.length === 0 ? (
+            <span className={styles.emptyText}>None visited yet</span>
+          ) : (
+            visitedNodes.map(id => (
+              <span key={id} className={styles.visitedChip}>
                 {id}
               </span>
             ))
-        }
+          )}
+        </div>
+      </div>
+
+      {/* Frontier / Unexplored Set */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>
+          <Eye size={13} className={styles.frontierIcon} /> Frontier Nodes ({frontierNodes.length})
+        </h3>
+        <div className={styles.chipsRow}>
+          {frontierNodes.length === 0 ? (
+            <span className={styles.emptyText}>None in frontier</span>
+          ) : (
+            frontierNodes.map(id => (
+              <span key={id} className={styles.frontierChip}>
+                {id}
+              </span>
+            ))
+          )}
+        </div>
       </div>
     </div>
   )

@@ -1,9 +1,9 @@
 /* LearnModePage.module.css */
 
 .page {
-  max-width: 1550px;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -11,85 +11,247 @@
   box-sizing: border-box;
 }
 
-.header {
-  text-align: center;
+/* Header Card */
+.headerCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-sub);
+  border-radius: var(--r-lg);
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  box-shadow: var(--shadow);
+}
+
+.headerMain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.headerLeftInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .pill {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--accent-light);
   background: rgba(99, 102, 241, 0.12);
   border: 1px solid rgba(99, 102, 241, 0.25);
-  padding: 0.3rem 0.75rem;
+  padding: 0.2rem 0.65rem;
   border-radius: 999px;
-  margin-bottom: 0.5rem;
+  width: fit-content;
 }
 
 .title {
-  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  font-size: clamp(1.4rem, 2.5vw, 1.8rem);
   font-weight: 900;
   letter-spacing: -0.5px;
-  margin-bottom: 0.35rem;
+  margin: 0;
 }
 
 .sub {
   color: var(--text-2);
-  font-size: 0.88rem;
-  max-width: 600px;
-  margin: 0 auto;
-  line-height: 1.6;
+  font-size: 0.85rem;
+  margin: 0;
+  line-height: 1.5;
 }
 
-/* Master 2-column layout with minmax(0, 1fr) to strictly contain children */
+/* Quick Algorithm Switcher Pills */
+.algoSelectorGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg-elevated);
+  padding: 0.3rem;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+}
+
+.algoTab {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: all var(--fast);
+}
+
+.algoTab:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.algoTabActive {
+  background: var(--algo-color, var(--accent)) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.headerSubBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border-sub);
+}
+
+.stepBadge {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  color: var(--text-2);
+}
+
+.stepHighlight {
+  color: var(--accent-light);
+  font-size: 0.95rem;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ── Main Layout: LEFT Canvas & Builder | RIGHT Explanations & State ──── */
 .layout {
   display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 420px;
   gap: 1.25rem;
   align-items: start;
   width: 100%;
 }
 
-.sidebar {
-  position: sticky;
-  top: 80px;
-  z-index: 10;
-}
-
-.mainContent {
+.leftColumn {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  min-width: 0; /* Prevents flex children from pushing grid width */
-}
-
-.canvasArea {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  position: relative;
-  z-index: 5;
+  gap: 1rem;
   min-width: 0;
 }
 
-.panelsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.1rem;
+.builderSection {
   width: 100%;
 }
 
-/* Responsive: collapse to single column on smaller screens */
-@media (max-width: 1100px) {
+.canvasWrapSection {
+  position: relative;
+  width: 100%;
+  border-radius: var(--r-lg);
+  min-width: 0;
+}
+
+.controlsSection {
+  width: 100%;
+}
+
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-width: 0;
+}
+
+/* Goal Reached Completion Banner */
+.completionBanner {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.1));
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--r-lg);
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+.completionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.trophyIcon {
+  color: #10b981;
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
+}
+
+.completionTitle {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #10b981;
+  margin: 0;
+}
+
+.completionSub {
+  font-size: 0.78rem;
+  color: var(--text-2);
+  margin: 0;
+}
+
+.completionMetricsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.compTile {
+  display: flex;
+  flex-direction: column;
+  padding: 0.4rem 0.5rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: var(--r-sm);
+  text-align: center;
+}
+
+.compTile span {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.compTile strong {
+  font-family: var(--mono);
+  font-size: 1rem;
+  color: #10b981;
+}
+
+.compPathRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+}
+
+.compPathLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-2);
+  text-transform: uppercase;
+}
+
+.compPathText {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #10b981;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
   .layout {
     grid-template-columns: 1fr;
-  }
-  .sidebar {
-    position: static;
   }
 }

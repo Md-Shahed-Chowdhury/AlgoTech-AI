@@ -1,82 +1,232 @@
 /**
  * ExplanationPanel.jsx
  * ─────────────────────────────────────────────────────────────────────────────
- * Displays the enriched step explanation from explanationGenerator.js
- * and provides a voice toggle button.
- *
- * STUB — full rendering in next phase.
+ * AI Teacher Explanation Panel.
+ * Explains every simulation step in clean, pedagogical language:
+ *  - What happened?
+ *  - Why was this node selected?
+ *  - What candidates/neighbors were considered?
+ *  - The calculation & reasoning (f = g + h formulas)
+ *  - Voice Explanation Controls (Voice On/Off, Pause, Replay) using Web Speech API
  */
 
-import { useEffect } from 'react'
-import { Volume2, VolumeX, BookOpen } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Brain,
+  Volume2,
+  VolumeX,
+  Pause,
+  Play,
+  RotateCcw,
+  CheckCircle2,
+  HelpCircle,
+  Calculator,
+  Compass,
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react'
 import { useAlgorithmStore } from '../../store/useAlgorithmStore.js'
 import { useVoiceExplanation } from '../../hooks/useVoiceExplanation.js'
+import { ALGORITHM_META } from '../../types/graphTypes.js'
 import styles from './ExplanationPanel.module.css'
 
 export default function ExplanationPanel() {
+  const currentStep = useAlgorithmStore(s => s.steps[s.currentStepIndex] ?? null)
   const currentExplanation = useAlgorithmStore(s => s.explanations[s.currentStepIndex] ?? null)
-  const { speak, stop, isSupported, isSpeaking, isEnabled, setEnabled } = useVoiceExplanation()
+  const selectedAlgorithm = useAlgorithmStore(s => s.selectedAlgorithm)
+  const currentStepIndex = useAlgorithmStore(s => s.currentStepIndex)
+  const totalSteps = useAlgorithmStore(s => s.steps.length)
 
-  // Auto-speak when step changes (only if voice is enabled)
+  const { speak, stop, pause, resume, isSupported, isSpeaking, isPaused, isEnabled, setEnabled } = useVoiceExplanation()
+
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
+  // Auto-speak explanation when step changes if voice is enabled
   useEffect(() => {
     if (currentExplanation?.voiceText && isEnabled) {
       speak(currentExplanation.voiceText)
     }
-  }, [currentExplanation, isEnabled, speak])
+  }, [currentStepIndex, isEnabled, speak])
 
-  if (!currentExplanation) {
+  const meta = ALGORITHM_META[selectedAlgorithm]
+
+  if (!currentStep) {
     return (
       <div className={`card ${styles.panel}`}>
-        <BookOpen size={18} className={styles.emptyIcon} />
-        <p className={styles.empty}>Step-by-step explanations will appear here.</p>
+        <div className={styles.emptyState}>
+          <Brain size={24} className={styles.emptyIcon} />
+          <p>Click "Run Search Algorithm" to begin step-by-step AI teacher narration.</p>
+        </div>
       </div>
     )
   }
 
-  const { concept, summary, detail, keyPoints, formula, algorithmMeta } = currentExplanation
+  const {
+    currentNode,
+    neighborsConsidered,
+    calculations,
+    action,
+    reason,
+    isInitial,
+    isFinal,
+    goalReached,
+  } = currentStep
+
+  const handleReplayVoice = () => {
+    if (currentExplanation?.voiceText) {
+      speak(currentExplanation.voiceText)
+    }
+  }
 
   return (
     <div className={`card ${styles.panel}`}>
-      {/* Header: concept tag + voice toggle */}
+      {/* Header with AI Teacher Badge & Voice Controls */}
       <div className={styles.header}>
-        <span
-          className={styles.concept}
-          style={{ color: algorithmMeta?.color, background: `${algorithmMeta?.color}18` }}
-        >
-          {concept}
-        </span>
+        <div className={styles.headerTitle}>
+          <div className={styles.aiBadge}>
+            <Brain size={15} />
+            <span>AI Teacher</span>
+          </div>
+          <span className={styles.conceptTag} style={{ color: meta?.color }}>
+            {currentExplanation?.concept ?? action}
+          </span>
+        </div>
+
+        {/* Voice Control Buttons */}
         {isSupported && (
-          <button
-            id="voice-toggle"
-            className={`btn btn-ghost ${styles.voiceBtn}`}
-            onClick={() => {
-              if (isEnabled) { stop(); setEnabled(false) }
-              else { setEnabled(true) }
-            }}
-            title={isEnabled ? 'Mute voice' : 'Enable voice narration'}
-          >
-            {isEnabled
-              ? <Volume2  size={15} style={{ color: 'var(--emerald)' }} />
-              : <VolumeX  size={15} />
-            }
-          </button>
+          <div className={styles.voiceControls}>
+            <button
+              className={`btn btn-ghost ${styles.voiceBtn} ${isEnabled ? styles.voiceBtnActive : ''}`}
+              onClick={() => {
+                if (isEnabled) {
+                  stop()
+                  setEnabled(false)
+                } else {
+                  setEnabled(true)
+                  handleReplayVoice()
+                }
+              }}
+              title={isEnabled ? 'Mute voice narration' : 'Enable voice narration'}
+            >
+              {isEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+            </button>
+
+            {isEnabled && isSpeaking && (
+              <button
+                className={`btn btn-ghost ${styles.voiceBtn}`}
+                onClick={isPaused ? resume : pause}
+                title={isPaused ? 'Resume voice' : 'Pause voice'}
+              >
+                {isPaused ? <Play size={14} /> : <Pause size={14} />}
+              </button>
+            )}
+
+            {isEnabled && (
+              <button
+                className={`btn btn-ghost ${styles.voiceBtn}`}
+                onClick={handleReplayVoice}
+                title="Replay explanation voice"
+              >
+                <RotateCcw size={14} />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Summary */}
-      <p className={styles.summary}>{summary}</p>
+      {/* 1. What Happened? */}
+      <div className={styles.section}>
+        <h4 className={styles.sectionHeader}>
+          <CheckCircle2 size={14} className={styles.iconHappen} /> What happened?
+        </h4>
+        <p className={styles.sectionBody}>
+          {currentExplanation?.summary || reason}
+        </p>
+      </div>
 
-      {/* Detail */}
-      <p className={styles.detail}
-        dangerouslySetInnerHTML={{ __html: detail.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') }}
-      />
+      {/* 2. Why was this node selected? */}
+      <div className={styles.section}>
+        <h4 className={styles.sectionHeader}>
+          <HelpCircle size={14} className={styles.iconWhy} /> Why was this node selected?
+        </h4>
+        <p className={styles.sectionBody}>
+          {currentExplanation?.detail || reason}
+        </p>
+      </div>
 
-      {/* Key points */}
-      {keyPoints?.length > 0 && (
-        <ul className={styles.keyPoints}>
-          {keyPoints.map((pt, i) => <li key={i}>{pt}</li>)}
-        </ul>
+      {/* 3. Calculations & Mathematical Breakdown (A* / UCS / Greedy) */}
+      {calculations && calculations.length > 0 && (
+        <div className={styles.section}>
+          <h4 className={styles.sectionHeader}>
+            <Calculator size={14} className={styles.iconCalc} /> Calculation & Reasoning
+          </h4>
+          <div className={styles.calcBlock}>
+            {calculations.map((calc, idx) => (
+              <code key={idx} className={styles.calcLine}>{calc}</code>
+            ))}
+          </div>
+        </div>
       )}
+
+      {/* 4. What candidates were considered? */}
+      {neighborsConsidered && neighborsConsidered.length > 0 && (
+        <div className={styles.section}>
+          <h4 className={styles.sectionHeader}>
+            <Compass size={14} className={styles.iconCandidates} /> Candidates Considered ({neighborsConsidered.length})
+          </h4>
+          <div className={styles.candidatesList}>
+            {neighborsConsidered.map((item, idx) => (
+              <div key={idx} className={styles.candidateRow}>
+                <span className={styles.candidateNode}>Neighbor {item.neighborId}</span>
+                <span className={styles.candidateWeight}>(weight {item.weight})</span>
+                <span className={`${styles.candidateStatus} ${styles[`status--${item.status}`]}`}>
+                  {item.status.replace(/_/g, ' ')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 5. What happens next? */}
+      <div className={styles.section}>
+        <h4 className={styles.sectionHeader}>
+          <ArrowRight size={14} className={styles.iconNext} /> What happens next?
+        </h4>
+        <p className={styles.nextText}>
+          {isFinal
+            ? (goalReached ? 'Algorithm completed! The final solution path is highlighted.' : 'Frontier is empty. Search ended without finding goal.')
+            : `Step ${currentStepIndex + 2} will pop the next highest priority node from the frontier.`
+          }
+        </p>
+      </div>
+
+      {/* Expandable Advanced Details */}
+      <div className={styles.advancedSection}>
+        <button
+          className={styles.advancedToggleBtn}
+          onClick={() => setShowAdvanced(!showAdvanced)}
+        >
+          <span>Advanced Concept Details</span>
+          {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+
+        <AnimatePresence>
+          {showAdvanced && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className={styles.advancedContent}
+            >
+              <p><strong>Complexity:</strong> Time {meta?.complexity?.time}, Space {meta?.complexity?.space}</p>
+              <p><strong>Optimality:</strong> {meta?.weighted ? 'Guarantees shortest path in weighted graphs.' : 'Guarantees shortest path in unweighted graphs.'}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }

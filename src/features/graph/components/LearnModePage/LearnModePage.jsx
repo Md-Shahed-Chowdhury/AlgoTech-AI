@@ -2,16 +2,21 @@
  * LearnModePage.jsx
  * ─────────────────────────────────────────────────────────────────────────────
  * Graph Search Learn Mode Page.
- * Master 2-column layout:
- *   - Left: GraphBuilder (toolbar, hints, telemetry, node/edge inspector)
- *   - Right: GraphCanvas + PlaybackControls + Info Panels Grid
+ * Professional Educational Simulator Layout:
+ *   - LEFT: Interactive 2D SVG Graph Canvas & Builder
+ *   - CENTER/RIGHT: AI Teacher Explanation, Algorithm State Panel, Queue/Stack/PQ, Metrics
+ *   - BOTTOM: Playback Controls (Prev, Next, Play, Pause, Restart, Speed, Scrubber)
+ *   - HEADER: Algorithm selector tabs (BFS, DFS, UCS, Greedy, A*), description, step counter, reset
+ *   - COMPLETION: Polished Goal Reached banner with path trace & metrics breakdown
  */
 
-import { BookOpen } from 'lucide-react'
-import { useParams } from 'react-router-dom'
+import { useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { BookOpen, RotateCcw, Trophy, CheckCircle2, ArrowRight, Sparkles } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useGraphStore } from '../../store/useGraphStore.js'
 import { useAlgorithmStore } from '../../store/useAlgorithmStore.js'
-import { ALGORITHM_META } from '../../types/graphTypes.js'
+import { ALGORITHM, ALGORITHM_META } from '../../types/graphTypes.js'
 
 import GraphCanvas from '../GraphCanvas/GraphCanvas.jsx'
 import GraphBuilder from '../GraphBuilder/GraphBuilder.jsx'
@@ -22,55 +27,171 @@ import ExplanationPanel from '../ExplanationPanel/ExplanationPanel.jsx'
 
 import styles from './LearnModePage.module.css'
 
+const ALGOS = [
+  { id: ALGORITHM.BFS,    name: 'BFS' },
+  { id: ALGORITHM.DFS,    name: 'DFS' },
+  { id: ALGORITHM.UCS,    name: 'UCS' },
+  { id: ALGORITHM.GREEDY, name: 'Greedy' },
+  { id: ALGORITHM.ASTAR,  name: 'A*' },
+]
+
 export default function LearnModePage() {
   const { algorithmId } = useParams()
+  const navigate = useNavigate()
+
   const graph = useGraphStore(s => s.graph)
-  const prepare = useAlgorithmStore(s => s.prepare)
+  const selectedAlgorithm = useAlgorithmStore(s => s.selectedAlgorithm)
   const setAlgorithm = useAlgorithmStore(s => s.setAlgorithm)
+  const prepare = useAlgorithmStore(s => s.prepare)
+  const resetPlayback = useAlgorithmStore(s => s.reset)
 
-  // Sync URL param → store
-  const meta = ALGORITHM_META[algorithmId]
+  const steps = useAlgorithmStore(s => s.steps)
+  const currentStepIndex = useAlgorithmStore(s => s.currentStepIndex)
+  const currentStep = steps[currentStepIndex] ?? null
+  const totalSteps = steps.length
 
-  const handleRun = () => {
-    if (algorithmId) setAlgorithm(algorithmId)
+  // Sync URL parameter algorithmId → store & auto-prepare simulation steps
+  useEffect(() => {
+    const activeAlgo = algorithmId || ALGORITHM.BFS
+    setAlgorithm(activeAlgo)
+    prepare(graph)
+  }, [algorithmId, graph, setAlgorithm, prepare])
+
+  const meta = ALGORITHM_META[selectedAlgorithm] || ALGORITHM_META[ALGORITHM.BFS]
+
+  const handleAlgoSelect = (id) => {
+    navigate(`/graph/learn/${id}`)
+  }
+
+  const handleRunOrReset = () => {
     prepare(graph)
   }
 
+  const isGoalCompletionStep = currentStep?.isFinal && currentStep?.goalReached
+
   return (
     <div className={styles.page}>
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className={styles.header}>
-        <div className={styles.pill}>
-          <BookOpen size={13} /> Learn Mode
+      {/* ── 1. Algorithm Header ──────────────────────────────────────────── */}
+      <div className={styles.headerCard}>
+        <div className={styles.headerMain}>
+          <div className={styles.headerLeftInfo}>
+            <div className={styles.pill}>
+              <BookOpen size={13} /> Learn Mode Simulator
+            </div>
+            <h1 className={styles.title}>
+              <span className="gradient-text">{meta.name}</span>
+            </h1>
+            <p className={styles.sub}>{meta.description}</p>
+          </div>
+
+          {/* Quick Algorithm Switcher Pills */}
+          <div className={styles.algoSelectorGroup}>
+            {ALGOS.map(algo => (
+              <button
+                key={algo.id}
+                className={`${styles.algoTab} ${selectedAlgorithm === algo.id ? styles.algoTabActive : ''}`}
+                onClick={() => handleAlgoSelect(algo.id)}
+                style={{
+                  '--algo-color': ALGORITHM_META[algo.id].color
+                }}
+              >
+                {algo.name}
+              </button>
+            ))}
+          </div>
         </div>
-        <h1 className={styles.title}>
-          <span className="gradient-text">{meta?.name ?? 'Graph Search Simulator'}</span>
-        </h1>
-        <p className={styles.sub}>
-          {meta?.description ?? 'Build a graph manually, run the search algorithm, and step through each decision.'}
-        </p>
+
+        <div className={styles.headerSubBar}>
+          <div className={styles.stepBadge}>
+            Step <strong className={styles.stepHighlight}>{totalSteps > 0 ? currentStepIndex + 1 : 0}</strong> / {totalSteps}
+          </div>
+
+          <div className={styles.headerActions}>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={resetPlayback}
+              disabled={totalSteps === 0}
+              title="Reset simulation to step 1"
+            >
+              <RotateCcw size={14} /> Restart Step 1
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* ── Main layout ─────────────────────────────────────────────────── */}
+      {/* ── Main Layout (Left: Canvas & Builder | Right: Explanations & State) ──── */}
       <div className={styles.layout}>
-        {/* Left column: builder toolbar, tools, hints & inspector */}
-        <aside className={styles.sidebar}>
-          <GraphBuilder onRun={handleRun} />
-        </aside>
+        {/* Left Column: Interactive Canvas + Canvas Controls */}
+        <div className={styles.leftColumn}>
+          {/* Builder Tools Palette */}
+          <div className={styles.builderSection}>
+            <GraphBuilder onRun={handleRunOrReset} showStatsPanel={false} />
+          </div>
 
-        {/* Right column: canvas area + playback + info panels */}
-        <main className={styles.mainContent}>
-          <div className={styles.canvasArea}>
-            <GraphCanvas width={850} height={500} />
+          {/* SVG Graph Canvas */}
+          <div className={styles.canvasWrapSection}>
+            <GraphCanvas width={850} height={520} />
+          </div>
+
+          {/* Bottom Simulation Transport Bar */}
+          <div className={styles.controlsSection}>
             <PlaybackControls />
           </div>
+        </div>
 
-          <div className={styles.panelsGrid}>
-            <ExplanationPanel />
-            <AlgorithmStatePanel />
-            <MetricsPanel />
-          </div>
-        </main>
+        {/* Right Column: AI Teacher Explanations + Algorithm State + Metrics */}
+        <aside className={styles.rightColumn}>
+          {/* Goal Reached Completion Banner */}
+          <AnimatePresence>
+            {isGoalCompletionStep && (
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: -10 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: -10 }}
+                className={styles.completionBanner}
+              >
+                <div className={styles.completionHeader}>
+                  <Trophy size={20} className={styles.trophyIcon} />
+                  <div>
+                    <h3 className={styles.completionTitle}>Goal Node Reached!</h3>
+                    <p className={styles.completionSub}>Simulation complete for {meta.name}</p>
+                  </div>
+                </div>
+
+                <div className={styles.completionMetricsGrid}>
+                  <div className={styles.compTile}>
+                    <span>Path Cost</span>
+                    <strong>{currentStep.metrics?.totalCost ?? currentStep.pathNodes?.length - 1}</strong>
+                  </div>
+                  <div className={styles.compTile}>
+                    <span>Nodes Expanded</span>
+                    <strong>{currentStep.metrics?.nodesExpanded ?? 0}</strong>
+                  </div>
+                  <div className={styles.compTile}>
+                    <span>Total Steps</span>
+                    <strong>{totalSteps}</strong>
+                  </div>
+                </div>
+
+                <div className={styles.compPathRow}>
+                  <span className={styles.compPathLabel}>Solution Path:</span>
+                  <span className={styles.compPathText}>
+                    {currentStep.pathNodes?.join(' → ')}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Section 5: AI Teacher Explanation Panel */}
+          <ExplanationPanel />
+
+          {/* Section 3 & 4: Algorithm State Panel (Queue/Stack/PQ + Sets) */}
+          <AlgorithmStatePanel />
+
+          {/* Section: Metrics Panel */}
+          <MetricsPanel />
+        </aside>
       </div>
     </div>
   )
