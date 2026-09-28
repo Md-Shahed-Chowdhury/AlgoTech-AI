@@ -38,6 +38,31 @@ import { explainStep } from '../../engine/explanationGenerator.js'
 import { ALGORITHM_META } from '../../types/graphTypes.js'
 import styles from './ExplanationPanel.module.css'
 
+function getActionBadgeInfo(step) {
+  if (!step) return null
+  const act = step.stepType || step.actionType || step.action
+  switch (act) {
+    case 'INITIALIZE':
+      return { text: 'START SEARCH', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' }
+    case 'INITIALIZE_GOAL':
+      return { text: 'START = GOAL', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' }
+    case 'VISIT_NODE':
+      return { text: `VISIT NODE (${step.currentNode})`, color: '#6366f1', bg: 'rgba(99, 102, 241, 0.18)' }
+    case 'EXPLORE_NEIGHBORS':
+      return { text: `EXPLORE ALL NEIGHBORS (${step.currentNode ?? step.parentNode})`, color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.18)' }
+    case 'EXPAND_NODE':
+      return { text: `EXPAND NODE (${step.currentNode})`, color: '#6366f1', bg: 'rgba(99, 102, 241, 0.15)' }
+    case 'GOAL_REACHED':
+      return { text: `GOAL REACHED!`, color: '#10b981', bg: 'rgba(16, 185, 129, 0.2)' }
+    case 'NO_PATH':
+      return { text: `NO PATH EXISTS`, color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.2)' }
+    case 'SKIP_VISITED':
+      return { text: `SKIP VISITED NODE (${step.currentNode})`, color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.15)' }
+    default:
+      return { text: act, color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)' }
+  }
+}
+
 export default function ExplanationPanel() {
   const currentStep = useAlgorithmStore(s => s.steps[s.currentStepIndex] ?? null)
   const rawExplanation = useAlgorithmStore(s => s.explanations[s.currentStepIndex] ?? null)
@@ -64,6 +89,7 @@ export default function ExplanationPanel() {
   }, [currentStepIndex, isEnabled, speak])
 
   const meta = ALGORITHM_META[selectedAlgorithm]
+  const actionBadge = getActionBadgeInfo(currentStep)
 
   if (!currentStep) {
     return (
@@ -104,9 +130,20 @@ export default function ExplanationPanel() {
             <Brain size={15} />
             <span>AI Teacher</span>
           </div>
-          <span className={styles.conceptTag} style={{ color: meta?.color }}>
-            {explanation?.concept ?? action}
-          </span>
+          {actionBadge && (
+            <span
+              className={styles.conceptTag}
+              style={{
+                color: actionBadge.color,
+                background: actionBadge.bg,
+                padding: '0.15rem 0.5rem',
+                borderRadius: '4px',
+                border: `1px solid ${actionBadge.color}40`,
+              }}
+            >
+              {actionBadge.text}
+            </span>
+          )}
         </div>
 
         {/* Voice Control Buttons */}

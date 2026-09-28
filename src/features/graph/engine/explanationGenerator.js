@@ -129,29 +129,50 @@ export function explainAllSteps(steps, algorithmId, graph, level = 'beginner') {
 
 function buildShortExplanation(step, algorithmId) {
   const node = step.currentNode ?? step.selectedNode
-  if (step.isInitial) {
-    return `Initialized ${algorithmId} search starting at node ${node}.`
+  const act = step.actionType || step.action
+  const pNode = step.parentNode
+  const nNode = step.neighborNode
+
+  if (act === 'INITIALIZE') {
+    return `Initialized ${algorithmId.toUpperCase()} search starting at node ${node}.`
   }
-  if (step.isFinal) {
-    return step.goalReached
-      ? `Goal node ${node} reached! Search completed successfully.`
-      : `Frontier exhausted. No path exists to the goal node.`
+  if (act === 'GOAL_REACHED' || (step.isFinal && step.goalReached)) {
+    return `Goal node ${node} reached! Search completed successfully.`
   }
-  if (step.action === 'SKIP_VISITED') {
-    return `Skipped node ${node} because it was already expanded via a better path.`
+  if (act === 'NO_PATH' || (step.isFinal && !step.goalReached)) {
+    return `Frontier exhausted. No path exists to the goal node.`
+  }
+  if (act === 'SKIP_VISITED') {
+    return `Skipped node ${node} because it was already visited.`
+  }
+  if (act === 'EVALUATE_NEIGHBOR') {
+    return `Evaluating edge ${pNode} → ${nNode} (weight ${step.edgeWeight ?? 1}).`
+  }
+  if (act === 'DISCOVER_NODE') {
+    return `Discovered new neighbor ${nNode} from ${pNode}! Added to frontier.`
+  }
+  if (act === 'SKIP_ALREADY_DISCOVERED') {
+    return `Skipped neighbor ${nNode} because it is already in the frontier.`
+  }
+  if (act === 'UPDATE_FRONTIER') {
+    return `Found a shorter path to neighbor ${nNode}! Updated g(${nNode}) = ${step.gCost?.[nNode]}.`
+  }
+  if (act === 'SKIP_HIGHER_COST') {
+    return `Skipped edge ${pNode} → ${nNode} because existing path to ${nNode} is already cheaper.`
   }
 
+  // SELECT_NODE or default
   switch (algorithmId) {
     case ALGORITHM.BFS:
-      return `Selected node ${node} from the front of the FIFO queue (discovered earliest).`
+      return `Selected node ${node} from front of FIFO queue (discovered earliest).`
     case ALGORITHM.DFS:
-      return `Selected node ${node} from the top of the LIFO stack to explore deeper.`
+      return `Selected node ${node} from top of LIFO stack (most recently pushed).`
     case ALGORITHM.UCS:
-      return `Selected node ${node} with the lowest cumulative path cost g(${node}) = ${step.gCost?.[node] ?? 0}.`
+      return `Selected node ${node} with lowest cumulative path cost g(${node}) = ${step.gCost?.[node] ?? 0}.`
     case ALGORITHM.GREEDY:
-      return `Selected node ${node} with the lowest estimated distance to goal h(${node}) = ${formatNum(step.hCost?.[node])}.`
+      return `Selected node ${node} with lowest estimated distance to goal h(${node}) = ${formatNum(step.hCost?.[node])}.`
     case ALGORITHM.ASTAR:
-      return `Selected node ${node} with the lowest total evaluation score f(${node}) = ${formatNum(step.fCost?.[node])}.`
+      return `Selected node ${node} with lowest total evaluation score f(${node}) = ${formatNum(step.fCost?.[node])}.`
     default:
       return `Selected node ${node} for expansion.`
   }
@@ -163,53 +184,81 @@ function buildShortExplanation(step, algorithmId) {
 
 function buildBeginnerExplanation(step, algorithmId, startId, goalId) {
   const node = step.currentNode ?? step.selectedNode
+  const act = step.actionType || step.action
+  const pNode = step.parentNode
+  const nNode = step.neighborNode
+  const g = step.gCost?.[node] ?? 0
+  const h = step.hCost?.[node] ?? 0
+  const f = step.fCost?.[node] ?? (g + h)
 
-  if (step.isInitial) {
+  if (act === 'INITIALIZE') {
     switch (algorithmId) {
       case ALGORITHM.BFS:
-        return `We begin Breadth-First Search (BFS) at node ${startId}. Imagine a queue of customers at a coffee shop — whoever arrives first gets served first (First-In, First-Out). We place node ${startId} at the front of our line.`
+        return `We begin Breadth-First Search at node ${startId}. BFS uses a FIFO queue (First-In, First-Out). We place ${startId} at the front of the queue.`
       case ALGORITHM.DFS:
-        return `We begin Depth-First Search (DFS) at node ${startId}. Imagine a stack of cafeteria trays — you always pick the tray off the top (Last-In, First-Out). We place node ${startId} on top of our stack.`
+        return `We begin Depth-First Search at node ${startId}. DFS uses a LIFO stack (Last-In, First-Out). We push ${startId} onto top of the stack.`
       case ALGORITHM.UCS:
-        return `We start Uniform Cost Search (UCS) at node ${startId} with a cost of 0. UCS behaves like a budget-conscious traveler: it always picks the cheapest ticket available next.`
+        return `We start Uniform Cost Search at node ${startId} with cost g(${startId}) = 0. UCS always picks the node with the lowest path cost so far.`
       case ALGORITHM.GREEDY:
-        return `We start Greedy Best-First Search at node ${startId}. Greedy acts like a person holding a compass that points directly toward node ${goalId}. It always walks toward whichever node appears physically closest to the destination.`
+        return `We start Greedy Best-First Search at node ${startId}. Greedy uses a compass heuristic h(n) pointing toward goal ${goalId}.`
       case ALGORITHM.ASTAR:
-        return `We start A* Search at node ${startId}. A* is like a smart GPS navigator: it balances the distance already driven, g(n), with the estimated distance remaining to the goal, h(n), using f(n) = g(n) + h(n).`
+        return `We start A* Search at node ${startId}. A* balances path cost g(n) and heuristic h(n) using f(n) = g(n) + h(n).`
       default:
         return `Starting search from node ${startId} to ${goalId}.`
     }
   }
 
-  if (step.isFinal) {
-    if (step.goalReached) {
-      const pathStr = step.pathNodes?.join(' → ') ?? node
-      return `Goal node ${node} reached! The algorithm traced back the path: ${pathStr}. Total path cost: ${step.metrics?.totalCost ?? 0}.`
-    }
-    return `The search ended because there are no more nodes left to check in the frontier. Goal node ${goalId} is unreachable from start node ${startId}.`
+  if (act === 'GOAL_REACHED' || (step.isFinal && step.goalReached)) {
+    const pathStr = step.pathNodes?.join(' → ') ?? node
+    return `Goal node ${node} popped from the frontier! We have found the solution path: ${pathStr} with total cost ${step.metrics?.totalCost ?? 0}.`
   }
 
-  if (step.action === 'SKIP_VISITED') {
-    return `Node ${node} was taken out of the frontier, but we already visited it earlier. We skip it to avoid wasting time or getting stuck in loops.`
+  if (act === 'NO_PATH' || (step.isFinal && !step.goalReached)) {
+    return `The search ended because the frontier is empty. Goal node ${goalId} is unreachable from start node ${startId}.`
   }
 
-  const g = step.gCost?.[node] ?? 0
-  const h = step.hCost?.[node] ?? 0
-  const f = step.fCost?.[node] ?? (g + h)
+  if (act === 'SKIP_VISITED') {
+    return `Node ${node} was popped from the frontier, but it was already explored earlier via a different path. We skip it.`
+  }
 
+  if (act === 'EVALUATE_NEIGHBOR') {
+    return `Node ${pNode} is expanding its edges. We cross edge ${pNode} → ${nNode} (weight ${step.edgeWeight ?? 1}) to inspect neighbor ${nNode}.`
+  }
+
+  if (act === 'DISCOVER_NODE') {
+    const nG = step.gCost?.[nNode] ?? 0
+    const nH = step.hCost?.[nNode] ?? 0
+    const nF = step.fCost?.[nNode] ?? (nG + nH)
+    return `Neighbor ${nNode} has not been visited yet! We set its parent to ${pNode} and add ${nNode} to the frontier (g=${nG}${algorithmId === 'astar' ? `, f=${formatNum(nF)}` : ''}).`
+  }
+
+  if (act === 'SKIP_ALREADY_DISCOVERED') {
+    return `Neighbor ${nNode} is already in the frontier or explored. We do not re-add it to avoid redundant work.`
+  }
+
+  if (act === 'UPDATE_FRONTIER') {
+    const newG = step.gCost?.[nNode]
+    return `Path through ${pNode} gives a lower cost to ${nNode} (new g=${newG}) than its previously recorded path! We update its parent to ${pNode} and update its priority in the frontier.`
+  }
+
+  if (act === 'SKIP_HIGHER_COST') {
+    return `The path to ${nNode} through ${pNode} costs more than the path we already found earlier. We keep the existing cheaper path.`
+  }
+
+  // SELECT_NODE
   switch (algorithmId) {
     case ALGORITHM.BFS:
-      return `BFS selects node ${node} because it is at the very front of our FIFO queue. In BFS, nodes discovered earlier are always explored before newly discovered ones. This guarantees we check all nearby neighbors level-by-level.`
+      return `BFS pops node ${node} from the front of the FIFO queue. Because it was discovered earliest, we now explore all of ${node}'s outgoing edges next.`
     case ALGORITHM.DFS:
-      return `DFS selects node ${node} because it sits at the top of our LIFO stack. DFS dives straight down one branch as deep as possible before turning back (backtracking) to try other branches.`
+      return `DFS pops node ${node} from the top of the LIFO stack. We will explore as deep as possible down ${node}'s branch before backtracking.`
     case ALGORITHM.UCS:
-      return `UCS picks node ${node} because its path cost so far, g(${node}) = ${g}, is the cheapest among all available choices. By always expanding the cheapest path, UCS guarantees finding the lowest-cost route.`
+      return `UCS selects node ${node} because its cumulative path cost g(${node}) = ${g} is the smallest among all frontier nodes.`
     case ALGORITHM.GREEDY:
-      return `Greedy picks node ${node} because its estimated distance to the goal, h(${node}) = ${formatNum(h)}, is smaller than any other candidate. Greedy rushes straight toward the target, ignoring past cost.`
+      return `Greedy selects node ${node} because its estimated heuristic distance h(${node}) = ${formatNum(h)} is the smallest among all frontier nodes.`
     case ALGORITHM.ASTAR:
-      return `A* picks node ${node} because its total estimate f(${node}) = g(${g}) + h(${formatNum(h)}) = ${formatNum(f)} is the lowest among all candidates. This balances path effort already spent with remaining distance.`
+      return `A* selects node ${node} because its total score f(${node}) = g(${g}) + h(${formatNum(h)}) = ${formatNum(f)} is the lowest in the frontier.`
     default:
-      return `Node ${node} selected for expansion.`
+      return `Node ${node} selected from the frontier.`
   }
 }
 
@@ -219,33 +268,57 @@ function buildBeginnerExplanation(step, algorithmId, startId, goalId) {
 
 function buildAdvancedExplanation(step, algorithmId, startId, goalId) {
   const node = step.currentNode ?? step.selectedNode
+  const act = step.actionType || step.action
+  const pNode = step.parentNode
+  const nNode = step.neighborNode
 
-  if (step.isInitial) {
+  if (act === 'INITIALIZE') {
     switch (algorithmId) {
       case ALGORITHM.BFS:
-        return `Initialize Breadth-First Search: Enqueue start vertex ${startId} into a First-In-First-Out (FIFO) queue structure. BFS guarantees unweighted shortest-path optimality by expanding vertices in non-decreasing order of distance d(${startId}, v).`
+        return `Initialize Breadth-First Search: Enqueue start vertex ${startId} into a First-In-First-Out (FIFO) queue structure.`
       case ALGORITHM.DFS:
-        return `Initialize Depth-First Search: Push start vertex ${startId} onto an explicit Last-In-First-Out (LIFO) stack. DFS explores deeper along each branch prior to backtracking, requiring O(V) space for stack depth.`
+        return `Initialize Depth-First Search: Push start vertex ${startId} onto an explicit Last-In-First-Out (LIFO) stack.`
       case ALGORITHM.UCS:
-        return `Initialize Uniform Cost Search: Push vertex ${startId} into a Min-Priority Queue keyed by g(${startId}) = 0. UCS generalizes Dijkstra's algorithm to find optimal paths on non-negatively weighted graphs.`
+        return `Initialize Uniform Cost Search: Push vertex ${startId} into Min-Priority Queue keyed by g(${startId}) = 0.`
       case ALGORITHM.GREEDY:
-        return `Initialize Greedy Best-First Search: Insert start vertex ${startId} into a Min-Priority Queue keyed by heuristic evaluation h(${startId}). Greedy evaluates nodes purely using f(n) = h(n).`
+        return `Initialize Greedy Best-First Search: Insert start vertex ${startId} into Min-Priority Queue keyed by h(${startId}).`
       case ALGORITHM.ASTAR:
-        return `Initialize A* Search: Insert start vertex ${startId} into a Min-Priority Queue with priority f(${startId}) = g(${startId}) + h(${startId}). Given an admissible heuristic h(n) ≤ h*(n), A* is complete and optimal.`
+        return `Initialize A* Search: Insert start vertex ${startId} into Min-Priority Queue with priority f(${startId}) = g(${startId}) + h(${startId}).`
       default:
         return `Initialize search engine.`
     }
   }
 
-  if (step.isFinal) {
-    if (step.goalReached) {
-      return `Goal state ${node} popped from frontier. Search terminated. Path: [${step.pathNodes?.join(', ')}]. Path length: ${step.metrics?.pathLength ?? 0} edge(s), cumulative cost: ${step.metrics?.totalCost ?? 0}, total nodes expanded: ${step.metrics?.nodesExpanded ?? 0}.`
-    }
-    return `Frontier set is empty (Open Set = Ø). No connected component link exists between ${startId} and ${goalId}. Search terminated with negative result.`
+  if (act === 'GOAL_REACHED' || (step.isFinal && step.goalReached)) {
+    return `Goal state ${node} popped from frontier. Search terminated. Solution Path: [${step.pathNodes?.join(', ')}]. Path cost: ${step.metrics?.totalCost ?? 0}.`
   }
 
-  if (step.action === 'SKIP_VISITED') {
-    return `State ${node} popped from frontier was previously closed (expanded). Skipped to preserve monotonic expansion invariants.`
+  if (act === 'NO_PATH' || (step.isFinal && !step.goalReached)) {
+    return `Frontier set is empty (Open Set = Ø). No connected path exists to goal vertex ${goalId}.`
+  }
+
+  if (act === 'SKIP_VISITED') {
+    return `State ${node} popped from frontier was previously closed. Skipped to preserve monotonic expansion invariants.`
+  }
+
+  if (act === 'EVALUATE_NEIGHBOR') {
+    return `Traversing incident edge (${pNode}, ${nNode}) with edge weight ${step.edgeWeight ?? 1}.`
+  }
+
+  if (act === 'DISCOVER_NODE') {
+    return `Vertex ${nNode} unvisited. Inserted into Open Set with parent pointer π[${nNode}] = ${pNode}.`
+  }
+
+  if (act === 'SKIP_ALREADY_DISCOVERED') {
+    return `Vertex ${nNode} already present in Open Set or Closed Set. Skipped redundant insertion.`
+  }
+
+  if (act === 'UPDATE_FRONTIER') {
+    return `Relaxation successful for edge (${pNode}, ${nNode}): g(${pNode}) + w > g(${nNode}). Key updated in Min-PQ.`
+  }
+
+  if (act === 'SKIP_HIGHER_COST') {
+    return `Edge (${pNode}, ${nNode}) relaxation failed: candidate g(${pNode}) + w ≥ current g(${nNode}). Existing key retained.`
   }
 
   const g = step.gCost?.[node] ?? 0
@@ -254,17 +327,17 @@ function buildAdvancedExplanation(step, algorithmId, startId, goalId) {
 
   switch (algorithmId) {
     case ALGORITHM.BFS:
-      return `Popped head vertex ${node} from FIFO queue. BFS processes vertices by depth layers. All depth d vertices are expanded before any depth d+1 vertices enter processing.`
+      return `Popped head vertex ${node} from FIFO queue. BFS processes vertices by depth layers.`
     case ALGORITHM.DFS:
-      return `Popped top vertex ${node} from LIFO stack. DFS advances along the newest topological edge until reaching an expanded vertex or dead end, driving deep graph traversal before triggering backtracking.`
+      return `Popped top vertex ${node} from LIFO stack. DFS advances along newest topological branch.`
     case ALGORITHM.UCS:
-      return `Popped minimum key vertex ${node} from Priority Queue with path cost g(${node}) = ${g}. Expanding vertex ${node} finalizes its optimal path cost g*(${node}).`
+      return `Popped minimum key vertex ${node} from Priority Queue with path cost g(${node}) = ${g}.`
     case ALGORITHM.GREEDY:
-      return `Popped minimum key vertex ${node} from Priority Queue with heuristic rating h(${node}) = ${formatNum(h)}. Search prioritizes localized heuristic minimization.`
+      return `Popped minimum key vertex ${node} from Priority Queue with heuristic rating h(${node}) = ${formatNum(h)}.`
     case ALGORITHM.ASTAR:
-      return `Popped minimum key vertex ${node} from Priority Queue with total evaluation f(${node}) = g(${g}) + h(${formatNum(h)}) = ${formatNum(f)}. Vertex ${node} minimizes the lower-bound estimate of the optimal path through n.`
+      return `Popped minimum key vertex ${node} from Priority Queue with total evaluation f(${node}) = g(${g}) + h(${formatNum(h)}) = ${formatNum(f)}.`
     default:
-      return `Expanded node ${node}.`
+      return `Expanded vertex ${node}.`
   }
 }
 
@@ -274,11 +347,55 @@ function buildAdvancedExplanation(step, algorithmId, startId, goalId) {
 
 function buildCalculationBlock(step, algorithmId) {
   const node = step.currentNode ?? step.selectedNode
-  if (step.isInitial) {
+  const act = step.actionType || step.action
+  const pNode = step.parentNode
+  const nNode = step.neighborNode
+
+  if (act === 'INITIALIZE') {
     return [`Initialization at start node: ${node}`]
   }
-  if (step.isFinal) {
+  if (act === 'GOAL_REACHED' || (step.isFinal && step.goalReached)) {
     return step.calculations ?? [`Total cost: ${step.metrics?.totalCost ?? 0}`]
+  }
+
+  if (act === 'EVALUATE_NEIGHBOR' || act === 'DISCOVER_NODE' || act === 'UPDATE_FRONTIER' || act === 'SKIP_HIGHER_COST') {
+    const pG = step.gCost?.[pNode] ?? 0
+    const w = step.edgeWeight ?? 1
+    const candG = pG + w
+    const curG = step.gCost?.[nNode]
+    const nH = step.hCost?.[nNode] ?? 0
+
+    if (algorithmId === ALGORITHM.ASTAR) {
+      return [
+        `Edge: ${pNode} → ${nNode} (weight = ${w})`,
+        `g(${pNode}) = ${pG}`,
+        `Candidate g(${nNode}) = g(${pNode}) + weight = ${pG} + ${w} = ${candG}`,
+        curG !== undefined ? `Current g(${nNode}) = ${curG}` : `Neighbor ${nNode} unvisited`,
+        `h(${nNode}) = ${formatNum(nH)}`,
+        `f(${nNode}) = candidate g + h = ${candG} + ${formatNum(nH)} = ${formatNum(candG + nH)}`,
+      ]
+    }
+
+    if (algorithmId === ALGORITHM.UCS) {
+      return [
+        `Edge: ${pNode} → ${nNode} (weight = ${w})`,
+        `g(${pNode}) = ${pG}`,
+        `Candidate g(${nNode}) = ${pG} + ${w} = ${candG}`,
+        curG !== undefined ? `Current g(${nNode}) = ${curG}` : `Neighbor ${nNode} unvisited`,
+      ]
+    }
+
+    if (algorithmId === ALGORITHM.GREEDY) {
+      return [
+        `Edge: ${pNode} → ${nNode}`,
+        `Heuristic h(${nNode}) = ${formatNum(nH)}`,
+      ]
+    }
+
+    return [
+      `Edge: ${pNode} → ${nNode}`,
+      `Discovered via parent ${pNode}`,
+    ]
   }
 
   const g = step.gCost?.[node] ?? 0
@@ -330,8 +447,17 @@ function buildCalculationBlock(step, algorithmId) {
 
 function buildDecisionReason(step, algorithmId) {
   const node = step.currentNode ?? step.selectedNode
-  if (step.isInitial) return `Node ${node} is selected because it is the designated start node.`
-  if (step.isFinal) return step.goalReached ? `Node ${node} is the goal node!` : 'Frontier is empty.'
+  const act = step.actionType || step.action
+  const pNode = step.parentNode
+  const nNode = step.neighborNode
+
+  if (act === 'INITIALIZE') return `Node ${node} is selected because it is the designated start node.`
+  if (act === 'GOAL_REACHED' || (step.isFinal && step.goalReached)) return `Node ${node} is the goal node!`
+  if (act === 'EVALUATE_NEIGHBOR') return `Examining edge from ${pNode} to evaluate neighbor ${nNode}.`
+  if (act === 'DISCOVER_NODE') return `Node ${nNode} is newly discovered from parent ${pNode} and pushed to frontier.`
+  if (act === 'SKIP_ALREADY_DISCOVERED') return `Node ${nNode} is already in the frontier.`
+  if (act === 'UPDATE_FRONTIER') return `Cheaper path found to ${nNode} via ${pNode}.`
+  if (act === 'SKIP_HIGHER_COST') return `Path via ${pNode} is more expensive than existing path to ${nNode}.`
 
   const g = step.gCost?.[node] ?? 0
   const h = step.hCost?.[node] ?? 0
@@ -633,14 +759,20 @@ function numberToWords(num) {
 }
 
 function pickConcept(step, algorithmId) {
-  if (step.isInitial) return 'Initialization'
-  if (step.isFinal && step.pathFound) return 'Goal Reached'
-  if (step.isFinal) return 'No Path Found'
-  if (step.action === 'SKIP_VISITED') return 'Skip Visited'
+  const act = step.actionType || step.action
+  if (act === 'INITIALIZE') return 'Initialization'
+  if (act === 'GOAL_REACHED' || (step.isFinal && step.goalReached)) return 'Goal Reached'
+  if (act === 'NO_PATH' || (step.isFinal && !step.goalReached)) return 'No Path Found'
+  if (act === 'SKIP_VISITED') return 'Skip Visited'
+  if (act === 'EVALUATE_NEIGHBOR') return 'Edge Evaluation'
+  if (act === 'DISCOVER_NODE') return 'New Node Discovered'
+  if (act === 'SKIP_ALREADY_DISCOVERED') return 'Skip Duplicate Neighbor'
+  if (act === 'UPDATE_FRONTIER') return 'Frontier Cost Update'
+  if (act === 'SKIP_HIGHER_COST') return 'Skip (Higher Cost)'
 
   switch (algorithmId) {
     case ALGORITHM.BFS:    return 'FIFO Queue Selection'
-    case ALGORITHM.DFS:    return 'LIFO Stack Expansion'
+    case ALGORITHM.DFS:    return 'LIFO Stack Selection'
     case ALGORITHM.UCS:    return 'Lowest Path Cost g(n)'
     case ALGORITHM.GREEDY: return 'Lowest Heuristic h(n)'
     case ALGORITHM.ASTAR:  return 'Lowest Total Score f(n)'

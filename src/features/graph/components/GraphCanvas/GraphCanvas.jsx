@@ -15,6 +15,7 @@ import { BUILDER_MODE, NODE_STATE, EDGE_STATE } from '../../types/graphTypes.js'
 import NodeComponent from './NodeComponent.jsx'
 import EdgeComponent from './EdgeComponent.jsx'
 import InlineEditor from './InlineEditor.jsx'
+import TraversalParticle from './TraversalParticle.jsx'
 import styles from './GraphCanvas.module.css'
 
 // ── Visual state derivation ───────────────────────────────────────────────────
@@ -305,6 +306,47 @@ export default function GraphCanvas({ readOnly = false, width = 850, height = 55
             />
           ))}
         </g>
+
+        {/* Animated edge traversal particles for evaluated neighbors */}
+        {(() => {
+          if (!currentStep) return null
+          const particles = []
+          const activeNodeId = currentStep.currentNode ?? currentStep.parentNode
+          const pNode = activeNodeId ? graph.nodes[activeNodeId] : null
+
+          if (pNode && currentStep.neighborsConsidered && currentStep.neighborsConsidered.length > 0) {
+            currentStep.neighborsConsidered.forEach((item, idx) => {
+              const nNode = graph.nodes[item.neighborId]
+              if (nNode) {
+                particles.push(
+                  <TraversalParticle
+                    key={`${currentStep.stepIndex ?? 0}-${activeNodeId}-${item.neighborId}-${idx}`}
+                    x1={pNode.x}
+                    y1={pNode.y}
+                    x2={nNode.x}
+                    y2={nNode.y}
+                    delay={idx * 120}
+                  />
+                )
+              }
+            })
+          } else if (currentStep.parentNode && currentStep.neighborNode) {
+            const srcNode = graph.nodes[currentStep.parentNode]
+            const tgtNode = graph.nodes[currentStep.neighborNode]
+            if (srcNode && tgtNode) {
+              particles.push(
+                <TraversalParticle
+                  key={`${currentStep.stepIndex ?? 0}-${currentStep.parentNode}-${currentStep.neighborNode}`}
+                  x1={srcNode.x}
+                  y1={srcNode.y}
+                  x2={tgtNode.x}
+                  y2={tgtNode.y}
+                />
+              )
+            }
+          }
+          return particles
+        })()}
 
         {/* Rubber-band connection line in ADD_EDGE mode */}
         {pendingSrcNode && (

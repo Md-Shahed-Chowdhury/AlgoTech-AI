@@ -91,6 +91,21 @@ export default function AlgorithmStatePanel() {
         </div>
       </div>
 
+      {/* Active Edge Evaluation Context */}
+      {currentStep.parentNode && currentStep.neighborNode && (
+        <div className={styles.neighborContextCard}>
+          <span className={styles.neighborContextLabel}>Active Edge Evaluation</span>
+          <div className={styles.neighborContextRow}>
+            <span className={styles.parentChip}>{currentStep.parentNode}</span>
+            <ArrowRight size={14} className={styles.contextArrow} />
+            <span className={styles.neighborChip}>{currentStep.neighborNode}</span>
+            {currentStep.edgeWeight !== undefined && (
+              <span className={styles.weightBadge}>weight: {currentStep.edgeWeight}</span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Current Path Breadcrumbs */}
       {currentPath && currentPath.length > 0 && (
         <div className={styles.section}>

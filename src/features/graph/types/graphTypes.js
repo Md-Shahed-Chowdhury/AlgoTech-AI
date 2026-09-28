@@ -60,6 +60,34 @@ export const PLAYBACK = {
   DONE:    'done',
 }
 
+// ── Micro-step action types ───────────────────────────────────────────────────
+// Each simulation step now represents exactly ONE educational action.
+export const ACTION_TYPE = {
+  INITIALIZE:               'INITIALIZE',
+  INITIALIZE_GOAL:          'INITIALIZE_GOAL',   // start === goal
+  VISIT_NODE:               'VISIT_NODE',         // Phase A: node popped / selected from frontier
+  EXPLORE_NEIGHBORS:        'EXPLORE_NEIGHBORS',  // Phase B: evaluate all neighbors of current node
+  SELECT_NODE:              'SELECT_NODE',        // legacy alias
+  EVALUATE_NEIGHBOR:        'EVALUATE_NEIGHBOR',
+  DISCOVER_NODE:            'DISCOVER_NODE',
+  SKIP_ALREADY_DISCOVERED:  'SKIP_ALREADY_DISCOVERED',
+  UPDATE_FRONTIER:          'UPDATE_FRONTIER',
+  SKIP_HIGHER_COST:         'SKIP_HIGHER_COST',
+  GOAL_REACHED:             'GOAL_REACHED',
+  NO_PATH:                  'NO_PATH',
+  SKIP_VISITED:             'SKIP_VISITED',
+}
+
+// ── Neighbor evaluation decision tags ────────────────────────────────────────
+export const NEIGHBOR_DECISION = {
+  DISCOVERED:           'discovered',
+  ALREADY_DISCOVERED:   'already_discovered',
+  ALREADY_VISITED:      'already_visited',
+  UPDATE_COST:          'update_cost',
+  SKIP_HIGHER_COST:     'skip_higher_cost',
+  GOAL:                 'goal',
+}
+
 // ── Algorithm metadata (used by LearnPage cards + ExamPage selectors) ────────
 export const ALGORITHM_META = {
   [ALGORITHM.BFS]: {

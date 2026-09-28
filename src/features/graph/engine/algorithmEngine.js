@@ -3,23 +3,24 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * Unified dispatcher for all graph search algorithms.
  *
- * The UI (and Zustand store) only ever calls this file — it never imports
- * individual engine modules directly. This makes adding future algorithms
- * (Bidirectional BFS, IDA*, etc.) a one-line change here.
+ * Each algorithm alternates between two conceptual educational phases:
+ *  - PHASE A: VISIT_NODE (pops/selects node from frontier, sets active visited node)
+ *  - PHASE B: EXPLORE_NEIGHBORS (evaluates ALL outgoing edges of that node as ONE step, updates frontier)
  *
  * Pure logic — zero React, zero DOM, zero side effects.
  */
 
 import { ALGORITHM } from '../types/graphTypes.js'
-import { runBFS    } from './bfsEngine.js'
-import { runDFS    } from './dfsEngine.js'
-import { runUCS    } from './ucsEngine.js'
-import { runGreedy } from './greedyEngine.js'
-import { runAStar  } from './astarEngine.js'
+
+import { runBFSTwoPhase    } from './bfsTwoPhaseEngine.js'
+import { runDFSTwoPhase    } from './dfsTwoPhaseEngine.js'
+import { runUCSTwoPhase    } from './ucsTwoPhaseEngine.js'
+import { runGreedyTwoPhase } from './greedyTwoPhaseEngine.js'
+import { runAStarTwoPhase  } from './astarTwoPhaseEngine.js'
 
 /**
  * Run the selected algorithm on the given graph and return the full
- * array of AlgorithmStep snapshots.
+ * array of Two-Phase AlgorithmStep snapshots.
  *
  * @param {string} algorithmId  – one of ALGORITHM.BFS | DFS | UCS | GREEDY | ASTAR
  * @param {import('../types/graphStructures.js').Graph} graph
@@ -28,19 +29,17 @@ import { runAStar  } from './astarEngine.js'
  * @returns {import('../types/graphStructures.js').AlgorithmStep[]}
  */
 export function runAlgorithm(algorithmId, graph, options = {}) {
-  const { heuristicFn } = options
-
   switch (algorithmId) {
     case ALGORITHM.BFS:
-      return runBFS(graph)
+      return runBFSTwoPhase(graph)
     case ALGORITHM.DFS:
-      return runDFS(graph)
+      return runDFSTwoPhase(graph)
     case ALGORITHM.UCS:
-      return runUCS(graph)
+      return runUCSTwoPhase(graph)
     case ALGORITHM.GREEDY:
-      return runGreedy(graph, options)
+      return runGreedyTwoPhase(graph, options)
     case ALGORITHM.ASTAR:
-      return runAStar(graph, options)
+      return runAStarTwoPhase(graph, options)
     default:
       console.warn(`[algorithmEngine] Unknown algorithm: "${algorithmId}"`)
       return []
