@@ -59,6 +59,56 @@
   background: rgba(16, 185, 129, 0.12) !important;
 }
 
+/* Explanation Level Switcher Toggle */
+.levelToggleContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-elevated);
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+}
+
+.levelLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.levelToggleGroup {
+  display: flex;
+  background: var(--bg-surface);
+  padding: 0.15rem;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-sub);
+}
+
+.levelBtn {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.65rem;
+  border-radius: calc(var(--r-sm) - 2px);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.levelBtn:hover {
+  color: var(--text);
+}
+
+.levelBtnActive {
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(124, 58, 237, 0.3);
+}
+
 .section {
   display: flex;
   flex-direction: column;
@@ -79,6 +129,7 @@
 .iconHappen { color: #38bdf8; }
 .iconWhy { color: #a78bfa; }
 .iconCalc { color: var(--amber); }
+.iconCompare { color: #f43f5e; }
 .iconCandidates { color: #818cf8; }
 .iconNext { color: #10b981; }
 
@@ -102,6 +153,77 @@
   font-family: var(--mono);
   font-size: 0.78rem;
   color: var(--amber);
+}
+
+/* Why Not The Others Card */
+.whyNotCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.65rem 0.75rem;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  border-radius: var(--r-sm);
+}
+
+.whyNotSelectedRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px dashed rgba(244, 63, 94, 0.2);
+  font-size: 0.78rem;
+}
+
+.whyNotSelectedBadge {
+  font-weight: 800;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.whyNotSelectedVal {
+  font-family: var(--mono);
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.whyNotAltList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.whyNotAltRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  background: var(--bg-elevated);
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-sub);
+}
+
+.whyNotAltTitle {
+  font-weight: 700;
+  color: #f43f5e;
+}
+
+.whyNotAltVal {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text-2);
+}
+
+.whyNotSummary {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #a78bfa;
+  margin-top: 0.2rem;
+  font-style: italic;
 }
 
 .candidatesList {

@@ -3,10 +3,12 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * AI Teacher Explanation Panel.
  * Explains every simulation step in clean, pedagogical language:
- *  - What happened?
- *  - Why was this node selected?
- *  - What candidates/neighbors were considered?
- *  - The calculation & reasoning (f = g + h formulas)
+ *  - Beginner vs Detailed explanation level switcher
+ *  - Short explanation & Action overview
+ *  - Detailed pedagogical explanation
+ *  - Decision reason (Why was this node selected?)
+ *  - "Why not the others?" (Dynamic comparative section)
+ *  - Calculation & Mathematical Breakdown (f = g + h formulas)
  *  - Voice Explanation Controls (Voice On/Off, Pause, Replay) using Web Speech API
  */
 
@@ -26,27 +28,38 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
+  Scale,
+  Sparkles,
 } from 'lucide-react'
 import { useAlgorithmStore } from '../../store/useAlgorithmStore.js'
+import { useGraphStore } from '../../store/useGraphStore.js'
 import { useVoiceExplanation } from '../../hooks/useVoiceExplanation.js'
+import { explainStep } from '../../engine/explanationGenerator.js'
 import { ALGORITHM_META } from '../../types/graphTypes.js'
 import styles from './ExplanationPanel.module.css'
 
 export default function ExplanationPanel() {
   const currentStep = useAlgorithmStore(s => s.steps[s.currentStepIndex] ?? null)
-  const currentExplanation = useAlgorithmStore(s => s.explanations[s.currentStepIndex] ?? null)
+  const rawExplanation = useAlgorithmStore(s => s.explanations[s.currentStepIndex] ?? null)
   const selectedAlgorithm = useAlgorithmStore(s => s.selectedAlgorithm)
   const currentStepIndex = useAlgorithmStore(s => s.currentStepIndex)
   const totalSteps = useAlgorithmStore(s => s.steps.length)
+  const graph = useGraphStore(s => s.graph)
 
   const { speak, stop, pause, resume, isSupported, isSpeaking, isPaused, isEnabled, setEnabled } = useVoiceExplanation()
 
+  const [level, setLevel] = useState('beginner') // 'beginner' | 'detailed'
   const [showAdvanced, setShowAdvanced] = useState(false)
+
+  // Dynamically generate explanation based on current step and active level
+  const explanation = currentStep
+    ? explainStep(currentStep, selectedAlgorithm, graph, level)
+    : rawExplanation
 
   // Auto-speak explanation when step changes if voice is enabled
   useEffect(() => {
-    if (currentExplanation?.voiceText && isEnabled) {
-      speak(currentExplanation.voiceText)
+    if (explanation?.voiceText && isEnabled) {
+      speak(explanation.voiceText)
     }
   }, [currentStepIndex, isEnabled, speak])
 
@@ -66,7 +79,6 @@ export default function ExplanationPanel() {
   const {
     currentNode,
     neighborsConsidered,
-    calculations,
     action,
     reason,
     isInitial,
@@ -75,10 +87,13 @@ export default function ExplanationPanel() {
   } = currentStep
 
   const handleReplayVoice = () => {
-    if (currentExplanation?.voiceText) {
-      speak(currentExplanation.voiceText)
+    if (explanation?.voiceText) {
+      speak(explanation.voiceText)
     }
   }
+
+  const whyNot = explanation?.whyNotOthers
+  const calcBlock = explanation?.calculationBlock ?? currentStep.calculations ?? []
 
   return (
     <div className={`card ${styles.panel}`}>
@@ -90,7 +105,7 @@ export default function ExplanationPanel() {
             <span>AI Teacher</span>
           </div>
           <span className={styles.conceptTag} style={{ color: meta?.color }}>
-            {currentExplanation?.concept ?? action}
+            {explanation?.concept ?? action}
           </span>
         </div>
 
@@ -136,45 +151,108 @@ export default function ExplanationPanel() {
         )}
       </div>
 
+      {/* Explanation Level Switcher */}
+      <div className={styles.levelToggleContainer}>
+        <span className={styles.levelLabel}>Explanation Level</span>
+        <div className={styles.levelToggleGroup}>
+          <button
+            className={`${styles.levelBtn} ${level === 'beginner' ? styles.levelBtnActive : ''}`}
+            onClick={() => setLevel('beginner')}
+          >
+            Beginner
+          </button>
+          <button
+            className={`${styles.levelBtn} ${level === 'detailed' ? styles.levelBtnActive : ''}`}
+            onClick={() => setLevel('detailed')}
+          >
+            Detailed
+          </button>
+        </div>
+      </div>
+
       {/* 1. What Happened? */}
       <div className={styles.section}>
         <h4 className={styles.sectionHeader}>
           <CheckCircle2 size={14} className={styles.iconHappen} /> What happened?
         </h4>
         <p className={styles.sectionBody}>
-          {currentExplanation?.summary || reason}
+          {explanation?.shortExplanation || explanation?.summary || reason}
         </p>
       </div>
 
-      {/* 2. Why was this node selected? */}
+      {/* 2. Pedagogical Explanation */}
       <div className={styles.section}>
         <h4 className={styles.sectionHeader}>
-          <HelpCircle size={14} className={styles.iconWhy} /> Why was this node selected?
+          <HelpCircle size={14} className={styles.iconWhy} /> AI Teacher Explanation ({level === 'beginner' ? 'Beginner' : 'Detailed'})
         </h4>
         <p className={styles.sectionBody}>
-          {currentExplanation?.detail || reason}
+          {explanation?.detailedExplanation || explanation?.detail || reason}
         </p>
       </div>
 
-      {/* 3. Calculations & Mathematical Breakdown (A* / UCS / Greedy) */}
-      {calculations && calculations.length > 0 && (
+      {/* 3. Why was this node selected? (Decision Reason) */}
+      {explanation?.decisionReason && (
+        <div className={styles.section}>
+          <h4 className={styles.sectionHeader}>
+            <Sparkles size={14} className={styles.iconWhy} /> Decision Reason
+          </h4>
+          <p className={styles.sectionBody}>
+            {explanation.decisionReason}
+          </p>
+        </div>
+      )}
+
+      {/* 4. "Why not the others?" Comparative Section */}
+      {whyNot && !isInitial && !isFinal && (
+        <div className={styles.section}>
+          <h4 className={styles.sectionHeader}>
+            <Scale size={14} className={styles.iconCompare} /> Why not the others?
+          </h4>
+          <div className={styles.whyNotCard}>
+            <div className={styles.whyNotSelectedRow}>
+              <span className={styles.whyNotSelectedBadge}>Selected: {whyNot.selected.node}</span>
+              <span className={styles.whyNotSelectedVal}>{whyNot.selected.valueStr}</span>
+            </div>
+
+            {whyNot.alternatives && whyNot.alternatives.length > 0 ? (
+              <div className={styles.whyNotAltList}>
+                {whyNot.alternatives.map((alt, idx) => (
+                  <div key={idx} className={styles.whyNotAltRow}>
+                    <span className={styles.whyNotAltTitle}>Why not {alt.node}?</span>
+                    <span className={styles.whyNotAltVal}>{alt.valueStr}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className={styles.whyNotAltVal}>No other candidate nodes were waiting in the frontier at this step.</p>
+            )}
+
+            <div className={styles.whyNotSummary}>
+              {whyNot.summary}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Calculations & Mathematical Breakdown */}
+      {calcBlock && calcBlock.length > 0 && (
         <div className={styles.section}>
           <h4 className={styles.sectionHeader}>
             <Calculator size={14} className={styles.iconCalc} /> Calculation & Reasoning
           </h4>
           <div className={styles.calcBlock}>
-            {calculations.map((calc, idx) => (
+            {calcBlock.map((calc, idx) => (
               <code key={idx} className={styles.calcLine}>{calc}</code>
             ))}
           </div>
         </div>
       )}
 
-      {/* 4. What candidates were considered? */}
+      {/* 6. What candidates were considered? */}
       {neighborsConsidered && neighborsConsidered.length > 0 && (
         <div className={styles.section}>
           <h4 className={styles.sectionHeader}>
-            <Compass size={14} className={styles.iconCandidates} /> Candidates Considered ({neighborsConsidered.length})
+            <Compass size={14} className={styles.iconCandidates} /> Neighbors Evaluated ({neighborsConsidered.length})
           </h4>
           <div className={styles.candidatesList}>
             {neighborsConsidered.map((item, idx) => (
@@ -190,7 +268,7 @@ export default function ExplanationPanel() {
         </div>
       )}
 
-      {/* 5. What happens next? */}
+      {/* 7. What happens next? */}
       <div className={styles.section}>
         <h4 className={styles.sectionHeader}>
           <ArrowRight size={14} className={styles.iconNext} /> What happens next?
