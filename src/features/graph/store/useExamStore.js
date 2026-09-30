@@ -11,6 +11,7 @@ import { create } from 'zustand'
 import { ALGORITHM } from '../types/graphTypes.js'
 import { createPresetGraph, validateGraph } from '../utils/graphUtils.js'
 import { runAlgorithm } from '../engine/algorithmEngine.js'
+import { useGraphStore } from './useGraphStore.js'
 import {
   generateCorrectExplanation,
   generateWrongExplanation,
@@ -53,20 +54,10 @@ export const useExamStore = create((set, get) => ({
   // ── Actions ────────────────────────────────────────────────────────────────
 
   setAlgorithmId: (id) => {
-    const currentGraph = get().examGraph
-    // Reset visual states of nodes and edges on graph
-    const resetNodes = {}
-    for (const [nodeId, n] of Object.entries(currentGraph?.nodes ?? {})) {
-      resetNodes[nodeId] = { ...n, state: 'unexplored' }
-    }
-    const resetEdges = {}
-    for (const [edgeId, e] of Object.entries(currentGraph?.edges ?? {})) {
-      resetEdges[edgeId] = { ...e, state: 'default' }
-    }
-
+    const defaultGraph = createPresetGraph()
     set({
       algorithmId: id,
-      examGraph: { ...currentGraph, nodes: resetNodes, edges: resetEdges },
+      examGraph: defaultGraph,
       stage: EXAM_STAGE.BUILD,
       allSteps: [],
       expansionSteps: [],
@@ -76,6 +67,8 @@ export const useExamStore = create((set, get) => ({
       results: null,
       showWhy: false,
     })
+    // Sync main graph store to default preset
+    useGraphStore.getState().loadPreset()
   },
 
   setExamGraph: (graph) => set({ examGraph: graph }),

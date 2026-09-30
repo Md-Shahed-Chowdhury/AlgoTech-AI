@@ -17,6 +17,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useGraphStore } from '../../store/useGraphStore.js'
 import { useAlgorithmStore } from '../../store/useAlgorithmStore.js'
 import { ALGORITHM, ALGORITHM_META } from '../../types/graphTypes.js'
+import { createPresetGraph } from '../../utils/graphUtils.js'
 
 import GraphCanvas from '../GraphCanvas/GraphCanvas.jsx'
 import GraphBuilder from '../GraphBuilder/GraphBuilder.jsx'
@@ -40,6 +41,7 @@ export default function LearnModePage() {
   const navigate = useNavigate()
 
   const graph = useGraphStore(s => s.graph)
+  const loadPreset = useGraphStore(s => s.loadPreset)
   const selectedAlgorithm = useAlgorithmStore(s => s.selectedAlgorithm)
   const setAlgorithm = useAlgorithmStore(s => s.setAlgorithm)
   const prepare = useAlgorithmStore(s => s.prepare)
@@ -50,11 +52,13 @@ export default function LearnModePage() {
   const currentStep = steps[currentStepIndex] ?? null
   const totalSteps = steps.length
 
-  // Sync URL parameter algorithmId → store & auto-prepare simulation steps
+  // Sync URL parameter algorithmId → store & auto-reset to default preset graph
   useEffect(() => {
     const activeAlgo = algorithmId || ALGORITHM.BFS
-    prepare(graph, { algorithmId: activeAlgo })
-  }, [algorithmId, graph, prepare])
+    loadPreset()
+    const defaultGraph = createPresetGraph()
+    prepare(defaultGraph, { algorithmId: activeAlgo })
+  }, [algorithmId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const meta = ALGORITHM_META[selectedAlgorithm] || ALGORITHM_META[ALGORITHM.BFS]
 
