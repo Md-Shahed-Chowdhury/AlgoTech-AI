@@ -36,6 +36,7 @@ import {
 import { useExamStore, EXAM_STAGE } from '../../store/useExamStore.js'
 import { useGraphStore } from '../../store/useGraphStore.js'
 import { ALGORITHM, ALGORITHM_META } from '../../types/graphTypes.js'
+import { generateCorrectExplanation } from '../../utils/examExplanation.js'
 
 import GraphBuilder from '../GraphBuilder/GraphBuilder.jsx'
 import GraphCanvas from '../GraphCanvas/GraphCanvas.jsx'
@@ -64,6 +65,7 @@ export default function ExamModePage() {
   const nextQuestion = useExamStore(s => s.nextQuestion)
   const editGraphAgain = useExamStore(s => s.editGraphAgain)
   const retakeExam = useExamStore(s => s.retakeExam)
+  const startReplay = useExamStore(s => s.startReplay)
 
   const expansionSteps = useExamStore(s => s.expansionSteps)
   const currentQuestionIndex = useExamStore(s => s.currentQuestionIndex)
@@ -138,7 +140,6 @@ export default function ExamModePage() {
           </div>
         </div>
 
-        {/* Stepper indicator */}
         <div className={styles.stageStepper}>
           <span className={`${styles.stepPill} ${stage === EXAM_STAGE.BUILD ? styles.stepPillActive : ''}`}>
             1. Build / Edit Graph
@@ -151,7 +152,12 @@ export default function ExamModePage() {
           <span className={`${styles.stepPill} ${stage === EXAM_STAGE.RESULTS ? styles.stepPillActive : ''}`}>
             3. Results Dashboard
           </span>
+          <ChevronRight size={14} color="var(--text-muted)" />
+          <span className={`${styles.stepPill} ${stage === EXAM_STAGE.REPLAY ? styles.stepPillActive : ''}`}>
+            4. Replay
+          </span>
         </div>
+
       </div>
 
       {/* ── STAGE 1: BUILD GRAPH ────────────────────────────────────────────── */}
@@ -307,11 +313,105 @@ export default function ExamModePage() {
         <ExamResultDashboard
           results={results}
           algorithmId={algorithmId}
+          onReplay={startReplay}
           onRetake={retakeExam}
           onEditGraph={editGraphAgain}
           onBackToLearn={() => navigate(`/graph/learn/${algorithmId}`)}
         />
       )}
+
+      {/* ── STAGE 4: REPLAY MODE ─────────────────────────────────────────── */}
+      {stage === EXAM_STAGE.REPLAY && (() => {
+        const replayRecord = questionRecords[currentQuestionIndex] ?? null
+        const replayStep = replayRecord ? replayRecord.stepSnapshotBefore : null
+        const totalSteps = questionRecords.length
+        return (
+          <div className={styles.examLayout}>
+            {/* Canvas Column */}
+            <div className={styles.canvasColumn}>
+              <div className={styles.canvasInstructionBanner}>
+                <span>🔁 <strong>Replay Mode</strong> — Reviewing step {currentQuestionIndex + 1} of {totalSteps}</span>
+                <button
+                  className="btn btn-ghost"
+                  style={{ fontSize: '0.78rem', padding: '0.2rem 0.5rem' }}
+                  onClick={() => useExamStore.getState().setStage(EXAM_STAGE.RESULTS)}
+                >
+                  ← Back to Results
+                </button>
+              </div>
+              <div className={styles.canvasCard}>
+                <GraphCanvas
+                  width={780}
+                  height={520}
+                  readOnly
+                  activeStep={replayStep}
+                />
+              </div>
+            </div>
+
+            {/* Replay Side Panel */}
+            <div className={styles.sideColumn}>
+              <div className={styles.promptCard}>
+                <div className={styles.promptHeader}>
+                  <span className={styles.questionBadge}>
+                    Replay Step {currentQuestionIndex + 1} / {totalSteps}
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {replayRecord?.firstTryCorrect ? '✅ Got it first try' : replayRecord?.revealed ? '💡 Was revealed' : '❌ Required retries'}
+                  </span>
+                </div>
+
+                <h3 className={styles.promptText}>
+                  Correct Next Node: <span style={{ color: meta.color }}>{replayRecord?.correctNodeId}</span>
+                </h3>
+
+                {replayRecord && (
+                  <div className={styles.detailedReasonBox} style={{ marginTop: 0 }}>
+                    {generateCorrectExplanation(algorithmId, replayRecord.correctNodeId, expansionSteps[currentQuestionIndex], examGraph)}
+                  </div>
+                )}
+
+                <div className={styles.promptActions}>
+                  {currentQuestionIndex > 0 && (
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => useExamStore.setState({ currentQuestionIndex: currentQuestionIndex - 1 })}
+                      style={{ flex: 1, justifyContent: 'center' }}
+                    >
+                      ← Previous
+                    </button>
+                  )}
+                  {currentQuestionIndex < totalSteps - 1 ? (
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => useExamStore.setState({ currentQuestionIndex: currentQuestionIndex + 1 })}
+                      style={{ flex: 1, justifyContent: 'center' }}
+                    >
+                      Next Step →
+                    </button>
+                  ) : (
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => useExamStore.getState().setStage(EXAM_STAGE.RESULTS)}
+                      style={{ flex: 1, justifyContent: 'center' }}
+                    >
+                      Back to Results →
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <ExamStatePanel
+                step={replayStep}
+                algorithmId={algorithmId}
+                currentQuestionIndex={currentQuestionIndex}
+                totalQuestions={totalSteps}
+                graph={examGraph}
+              />
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

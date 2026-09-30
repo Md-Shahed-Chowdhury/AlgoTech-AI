@@ -456,3 +456,245 @@
   justify-content: center;
   margin-top: 0.5rem;
 }
+
+/* ── Behavior Summary Section ──────────────────────────────────────────────── */
+
+.behaviorSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+}
+
+.sectionHeaderTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.behaviorText {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ── Mistake Timeline Section ──────────────────────────────────────────────── */
+
+.timelineList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.timelineCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1rem;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  border-radius: var(--r-md);
+  border-left: 3px solid #f43f5e;
+}
+
+.timelineHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.timelineStepBadge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--r-sm);
+}
+
+.timelineMistakeTag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--r-sm);
+  background: rgba(244, 63, 94, 0.14);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.25);
+}
+
+.timelineChoicesRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.choiceChipWrong {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--r-md);
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  font-size: 0.82rem;
+  color: #f43f5e;
+}
+
+.choiceChipCorrect {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--r-md);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-size: 0.82rem;
+  color: #10b981;
+}
+
+.choiceArrow {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.timelineReasonText {
+  font-size: 0.825rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ── Cost Comparison Card ──────────────────────────────────────────────────── */
+
+.costComparisonCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(99, 102, 241, 0.07);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-radius: var(--r-md);
+}
+
+.costCompTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-light);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.costCompGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.costCompColWrong {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: #f43f5e;
+}
+
+.costCompColWrong span {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.costCompColWrong code {
+  font-family: var(--mono);
+  background: rgba(244, 63, 94, 0.1);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  color: #f43f5e;
+}
+
+.costCompColCorrect {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: #10b981;
+}
+
+.costCompColCorrect span {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.costCompColCorrect code {
+  font-family: var(--mono);
+  background: rgba(16, 185, 129, 0.1);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  color: #10b981;
+}
+
+/* ── Recommendations Section ───────────────────────────────────────────────── */
+
+.recommendationsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+}
+
+.recList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.recCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--r-md);
+  border-left: 3px solid #f59e0b;
+}
+
+.recText {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text);
+  margin: 0;
+}
+
+/* ── Replay Stepper ────────────────────────────────────────────────────────── */
+
+.replayStepIndicator {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+

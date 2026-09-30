@@ -11,13 +11,20 @@ import { create } from 'zustand'
 import { ALGORITHM } from '../types/graphTypes.js'
 import { createPresetGraph, validateGraph } from '../utils/graphUtils.js'
 import { runAlgorithm } from '../engine/algorithmEngine.js'
-import { generateCorrectExplanation, generateWrongExplanation } from '../utils/examExplanation.js'
+import {
+  generateCorrectExplanation,
+  generateWrongExplanation,
+  generateAlgorithmBehaviorSummary,
+  generateMistakeTimeline,
+  generateLearningRecommendations,
+} from '../utils/examExplanation.js'
 import { playSuccessSound, playErrorSound } from '../utils/soundEffects.js'
 
 export const EXAM_STAGE = {
   BUILD:   'BUILD',   // User builds / edits graph
   EXAM:    'EXAM',    // Interactive node prediction session
   RESULTS: 'RESULTS', // Final performance dashboard
+  REPLAY:  'REPLAY',  // Replay complete exam step-by-step with answers revealed
 }
 
 export const useExamStore = create((set, get) => ({
@@ -304,6 +311,10 @@ export const useExamStore = create((set, get) => ({
       })
     })
 
+    const behaviorSummary = generateAlgorithmBehaviorSummary(algorithmId, overallAccuracy)
+    const mistakeTimeline = generateMistakeTimeline(questionRecords, algorithmId, get().examGraph)
+    const recommendations = generateLearningRecommendations(mistakeCounts, algorithmId)
+
     set({
       stage: EXAM_STAGE.RESULTS,
       results: {
@@ -315,7 +326,21 @@ export const useExamStore = create((set, get) => ({
         overallAccuracy,
         firstAttemptAccuracy,
         mistakeCounts,
+        behaviorSummary,
+        mistakeTimeline,
+        recommendations,
       },
+    })
+  },
+
+  /**
+   * Start Replay Mode to step through exam decisions with revealed answers.
+   */
+  startReplay: () => {
+    set({
+      stage: EXAM_STAGE.REPLAY,
+      currentQuestionIndex: 0,
+      showWhy: true,
     })
   },
 
