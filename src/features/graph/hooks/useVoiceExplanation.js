@@ -4,15 +4,6 @@
  * Custom React hook that wraps the Web Speech API (SpeechSynthesis).
  *
  * Consumed by: ExplanationPanel (Learn Mode) and the step narration overlay.
- *
- * Features:
- *  - Speaks a given text string
- *  - Exposes isSupported, isSpeaking, isPaused
- *  - Respects rate, pitch, volume preferences
- *  - Auto-selects a voice (prefers en-US)
- *  - Cancels previous utterance when a new one is requested
- *
- * IMPORTANT: Do NOT call this hook inside the engine files — it is React-only.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -24,19 +15,6 @@ const DEFAULT_OPTS = {
   lang:   'en-US',
 }
 
-/**
- * @returns {{
- *   speak: (text: string, opts?: object) => void,
- *   stop: () => void,
- *   pause: () => void,
- *   resume: () => void,
- *   isSupported: boolean,
- *   isSpeaking: boolean,
- *   isPaused: boolean,
- *   isEnabled: boolean,
- *   setEnabled: (v: boolean) => void,
- * }}
- */
 export function useVoiceExplanation() {
   const isSupported = typeof window !== 'undefined' && 'speechSynthesis' in window
 
@@ -48,54 +26,73 @@ export function useVoiceExplanation() {
 
   // Pick best voice when voices load
   useEffect(() => {
-    if (!isSupported) return
+    if (!isSupported || !synthRef.current) return
     const pick = () => {
-      const voices = synthRef.current.getVoices()
-      const best   = voices.find(v => v.lang.startsWith('en-US') && v.localService)
-                  ?? voices.find(v => v.lang.startsWith('en'))
-                  ?? voices[0]
-      voiceRef.current = best ?? null
+      try {
+        const voices = synthRef.current?.getVoices?.() ?? []
+        if (voices.length === 0) return
+        const best   = voices.find(v => v?.lang?.startsWith('en-US') && v?.localService)
+                    ?? voices.find(v => v?.lang?.startsWith('en'))
+                    ?? voices[0]
+        voiceRef.current = best ?? null
+      } catch {
+        // Safe fallback if speech synthesis is disabled by browser policy
+      }
     }
     pick()
-    synthRef.current.addEventListener('voiceschanged', pick)
-    return () => synthRef.current?.removeEventListener('voiceschanged', pick)
+    try {
+      if (synthRef.current && typeof synthRef.current.addEventListener === 'function') {
+        synthRef.current.addEventListener('voiceschanged', pick)
+        return () => synthRef.current?.removeEventListener?.('voiceschanged', pick)
+      }
+    } catch {
+      // Ignore event listener errors
+    }
   }, [isSupported])
 
   const stop = useCallback(() => {
-    if (!isSupported) return
-    synthRef.current.cancel()
+    if (!isSupported || !synthRef.current) return
+    try {
+      synthRef.current.cancel()
+    } catch {
+      // Ignore
+    }
     setIsSpeaking(false)
     setIsPaused(false)
   }, [isSupported])
 
   const speak = useCallback((text, opts = {}) => {
-    if (!isSupported || !isEnabled || !text) return
-    synthRef.current.cancel()
+    if (!isSupported || !isEnabled || !text || !synthRef.current) return
+    try {
+      synthRef.current.cancel()
 
-    const utterance       = new SpeechSynthesisUtterance(text)
-    utterance.voice       = voiceRef.current
-    utterance.rate        = opts.rate   ?? DEFAULT_OPTS.rate
-    utterance.pitch       = opts.pitch  ?? DEFAULT_OPTS.pitch
-    utterance.volume      = opts.volume ?? DEFAULT_OPTS.volume
-    utterance.lang        = opts.lang   ?? DEFAULT_OPTS.lang
+      const utterance       = new SpeechSynthesisUtterance(text)
+      if (voiceRef.current) utterance.voice = voiceRef.current
+      utterance.rate        = opts.rate   ?? DEFAULT_OPTS.rate
+      utterance.pitch       = opts.pitch  ?? DEFAULT_OPTS.pitch
+      utterance.volume      = opts.volume ?? DEFAULT_OPTS.volume
+      utterance.lang        = opts.lang   ?? DEFAULT_OPTS.lang
 
-    utterance.onstart     = () => { setIsSpeaking(true);  setIsPaused(false) }
-    utterance.onend       = () => { setIsSpeaking(false); setIsPaused(false) }
-    utterance.onerror     = () => { setIsSpeaking(false); setIsPaused(false) }
-    utterance.onpause     = () =>   setIsPaused(true)
-    utterance.onresume    = () =>   setIsPaused(false)
+      utterance.onstart     = () => { setIsSpeaking(true);  setIsPaused(false) }
+      utterance.onend       = () => { setIsSpeaking(false); setIsPaused(false) }
+      utterance.onerror     = () => { setIsSpeaking(false); setIsPaused(false) }
+      utterance.onpause     = () =>   setIsPaused(true)
+      utterance.onresume    = () =>   setIsPaused(false)
 
-    synthRef.current.speak(utterance)
+      synthRef.current.speak(utterance)
+    } catch {
+      // Fallback
+    }
   }, [isSupported, isEnabled])
 
   const pause = useCallback(() => {
-    if (!isSupported || !isSpeaking) return
-    synthRef.current.pause()
+    if (!isSupported || !isSpeaking || !synthRef.current) return
+    try { synthRef.current.pause() } catch {}
   }, [isSupported, isSpeaking])
 
   const resume = useCallback(() => {
-    if (!isSupported || !isPaused) return
-    synthRef.current.resume()
+    if (!isSupported || !isPaused || !synthRef.current) return
+    try { synthRef.current.resume() } catch {}
   }, [isSupported, isPaused])
 
   // Stop when component unmounts

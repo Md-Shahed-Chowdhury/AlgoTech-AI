@@ -34,6 +34,7 @@ export default function App() {
           {/* Graph Search Routes */}
           <Route path="/graph/learn" element={<LearnModePage />} />
           <Route path="/graph/learn/:algorithmId" element={<LearnModePage />} />
+          <Route path="/graph/exam" element={<ExamModePage />} />
           <Route path="/graph/exam/:algorithmId" element={<ExamModePage />} />
 
           <Route path="*"      element={<NotFound />} />

@@ -53,9 +53,8 @@ export default function LearnModePage() {
   // Sync URL parameter algorithmId → store & auto-prepare simulation steps
   useEffect(() => {
     const activeAlgo = algorithmId || ALGORITHM.BFS
-    setAlgorithm(activeAlgo)
-    prepare(graph)
-  }, [algorithmId, graph, setAlgorithm, prepare])
+    prepare(graph, { algorithmId: activeAlgo })
+  }, [algorithmId, graph, prepare])
 
   const meta = ALGORITHM_META[selectedAlgorithm] || ALGORITHM_META[ALGORITHM.BFS]
 
@@ -75,8 +74,17 @@ export default function LearnModePage() {
       <div className={styles.headerCard}>
         <div className={styles.headerMain}>
           <div className={styles.headerLeftInfo}>
-            <div className={styles.pill}>
-              <BookOpen size={13} /> Learn Mode Simulator
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div className={styles.pill}>
+                <BookOpen size={13} /> Learn Mode Simulator
+              </div>
+              <button
+                className="btn btn-secondary"
+                onClick={() => navigate(`/graph/exam/${selectedAlgorithm}`)}
+                style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem', gap: '0.35rem' }}
+              >
+                📝 Give Exam
+              </button>
             </div>
             <h1 className={styles.title}>
               <span className="gradient-text">{meta.name}</span>

@@ -57,6 +57,27 @@ function NodeComponent({
       {/* Main node circle */}
       <circle r={24} className={styles.nodeCircle} />
 
+      {/* Exam feedback animations */}
+      {state === 'exam-correct' && (
+        <motion.g initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+          <circle r={30} fill="none" stroke="#10b981" strokeWidth={3.5} />
+          <g transform="translate(18, -18)">
+            <circle r={9} fill="#10b981" />
+            <path d="M-3.5 0 L-1 2.5 L3.5 -2" fill="none" stroke="#ffffff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          </g>
+        </motion.g>
+      )}
+
+      {state === 'exam-wrong' && (
+        <motion.g initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+          <circle r={30} fill="none" stroke="#f43f5e" strokeWidth={3.5} />
+          <g transform="translate(18, -18)">
+            <circle r={9} fill="#f43f5e" />
+            <path d="M-2.5 -2.5 L2.5 2.5 M2.5 -2.5 L-2.5 2.5" fill="none" stroke="#ffffff" strokeWidth={2} strokeLinecap="round" />
+          </g>
+        </motion.g>
+      )}
+
       {/* Start / Goal badge glow ring */}
       {isStart && <circle r={27} fill="none" stroke="#10b981" strokeWidth={2.5} className={styles.startGlow} />}
       {isGoal && <circle r={27} fill="none" stroke="#f43f5e" strokeWidth={2.5} className={styles.goalGlow} />}
