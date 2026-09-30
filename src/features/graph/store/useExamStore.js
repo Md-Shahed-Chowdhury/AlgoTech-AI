@@ -45,7 +45,31 @@ export const useExamStore = create((set, get) => ({
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
-  setAlgorithmId: (id) => set({ algorithmId: id }),
+  setAlgorithmId: (id) => {
+    const currentGraph = get().examGraph
+    // Reset visual states of nodes and edges on graph
+    const resetNodes = {}
+    for (const [nodeId, n] of Object.entries(currentGraph?.nodes ?? {})) {
+      resetNodes[nodeId] = { ...n, state: 'unexplored' }
+    }
+    const resetEdges = {}
+    for (const [edgeId, e] of Object.entries(currentGraph?.edges ?? {})) {
+      resetEdges[edgeId] = { ...e, state: 'default' }
+    }
+
+    set({
+      algorithmId: id,
+      examGraph: { ...currentGraph, nodes: resetNodes, edges: resetEdges },
+      stage: EXAM_STAGE.BUILD,
+      allSteps: [],
+      expansionSteps: [],
+      currentQuestionIndex: 0,
+      questionRecords: [],
+      feedback: null,
+      results: null,
+      showWhy: false,
+    })
+  },
 
   setExamGraph: (graph) => set({ examGraph: graph }),
 

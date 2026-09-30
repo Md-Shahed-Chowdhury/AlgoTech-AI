@@ -40,9 +40,7 @@ function deriveNodeStates(step, graph) {
     map[id] = NODE_STATE.FRONTIER
   }
   for (const id of step.visitedNodes ?? []) {
-    if (!graph.nodes[id]?.isStart && !graph.nodes[id]?.isGoal) {
-      map[id] = NODE_STATE.VISITED
-    }
+    map[id] = NODE_STATE.VISITED
   }
   for (const id of step.pathNodes ?? []) {
     if (!graph.nodes[id]?.isStart && !graph.nodes[id]?.isGoal) {
