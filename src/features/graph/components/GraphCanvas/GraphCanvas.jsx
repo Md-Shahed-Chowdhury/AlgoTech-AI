@@ -83,6 +83,7 @@ export default function GraphCanvas({ readOnly = false, width = 850, height = 55
   const moveNode = useGraphStore(s => s.moveNode)
   const deleteNode = useGraphStore(s => s.deleteNode)
   const setNodeLabel = useGraphStore(s => s.setNodeLabel)
+  const setNodeHeuristic = useGraphStore(s => s.setNodeHeuristic)
   const addEdge = useGraphStore(s => s.addEdge)
   const deleteEdge = useGraphStore(s => s.deleteEdge)
   const setEdgeWeight = useGraphStore(s => s.setEdgeWeight)
@@ -217,8 +218,9 @@ export default function GraphCanvas({ readOnly = false, width = 850, height = 55
       type: 'node',
       id: node.id,
       x: node.x,
-      y: node.y - 35,
+      y: node.y - 70,
       initialValue: node.label,
+      initialHValue: node.hValue ?? node.h ?? null,
     })
   }
 
@@ -388,9 +390,11 @@ export default function GraphCanvas({ readOnly = false, width = 850, height = 55
       {inlineEditorTarget && (
         <InlineEditor
           target={inlineEditorTarget}
-          onSave={(newValue) => {
+          onSave={(newValue, newHValue) => {
             if (inlineEditorTarget.type === 'node') {
               setNodeLabel(inlineEditorTarget.id, newValue)
+              // newHValue is null when cleared, or a number
+              setNodeHeuristic(inlineEditorTarget.id, newHValue)
             } else if (inlineEditorTarget.type === 'edge') {
               setEdgeWeight(inlineEditorTarget.id, newValue)
             }

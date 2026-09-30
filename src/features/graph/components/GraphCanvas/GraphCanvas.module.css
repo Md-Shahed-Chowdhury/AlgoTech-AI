@@ -240,23 +240,6 @@
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
 }
 
-.inlineSaveBtn {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: var(--r-sm);
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: opacity var(--fast);
-}
-
-.inlineSaveBtn:hover {
-  opacity: 0.9;
-}
 
 .inlineCancelBtn {
   background: transparent;
@@ -274,4 +257,66 @@
 .inlineCancelBtn:hover {
   color: var(--text);
   border-color: var(--border-sub);
+}
+
+/* H(n) heuristic row in inline editor */
+.inlineHField {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--border);
+}
+
+.inlineHLabel {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #a78bfa;
+  white-space: nowrap;
+  min-width: 38px;
+}
+
+.inlineHInput {
+  width: 70px;
+  border-color: rgba(167, 139, 250, 0.4);
+}
+
+.inlineHInput:focus {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.2);
+}
+
+/* Action buttons row */
+.inlineEditorActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--border);
+}
+
+.inlineSaveBtn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-sm);
+  padding: 0.2rem 0.6rem;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity var(--fast);
+}
+
+.inlineSaveBtn:hover {
+  opacity: 0.88;
 }

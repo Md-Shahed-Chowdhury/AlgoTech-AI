@@ -8,7 +8,7 @@
 
 import { ACTION_TYPE, NEIGHBOR_DECISION } from '../types/graphTypes.js'
 import { MinHeap } from '../utils/MinHeap.js'
-import { buildAdjacency, getNeighbors, euclideanHeuristic, reconstructPath, pathToEdges } from '../utils/graphUtils.js'
+import { buildAdjacency, getNeighbors, euclideanHeuristic, getNodeHeuristic, reconstructPath, pathToEdges } from '../utils/graphUtils.js'
 
 function ms(params) {
   const actionType = params.actionType ?? ACTION_TYPE.SELECT_NODE
@@ -63,10 +63,9 @@ export function runAStar(graph, options = {}) {
 
   const allNodeIds = Object.keys(nodes)
   const adj = buildAdjacency(graph, false)
-  const goalNode = nodes[goalId]
   const hFunc = options.heuristicFn ?? euclideanHeuristic
 
-  const computeH = (nodeId) => Math.round(hFunc(nodes[nodeId], goalNode) * 10) / 10
+  const computeH = (nodeId) => getNodeHeuristic(nodeId, graph)
 
   const visited    = new Set()
   const gCost      = { [startId]: 0 }

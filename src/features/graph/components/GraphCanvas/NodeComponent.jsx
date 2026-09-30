@@ -89,6 +89,16 @@ function NodeComponent({
         </g>
       )}
 
+      {/* User-defined Heuristic H(n) Badge Pill */}
+      {(node.hValue !== undefined && node.hValue !== null && node.hValue !== '') && (
+        <g transform={`translate(${isStart || isGoal ? 28 : 24}, -20)`}>
+          <rect x="-18" y="-8" width="36" height="16" rx="4" fill="#7c3aed" opacity="0.92" />
+          <text textAnchor="middle" y="4" fill="#e9d5ff" fontSize="8" fontWeight="800" fontFamily="monospace">
+            h={node.hValue}
+          </text>
+        </g>
+      )}
+
       {/* Cost Label (g/f cost during search) */}
       {costLabel !== undefined && costLabel !== null && (
         <g transform="translate(0, 36)">

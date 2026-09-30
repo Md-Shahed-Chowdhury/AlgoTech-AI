@@ -12,6 +12,7 @@ import {
   buildAdjacency,
   getNeighbors,
   euclideanHeuristic,
+  getNodeHeuristic,
   reconstructPath,
   pathToEdges,
 } from '../utils/graphUtils.js'
@@ -35,13 +36,9 @@ export function runAStar(graph, options = {}) {
 
   const allNodeIds = Object.keys(nodes)
   const adj = buildAdjacency(graph, false)
-  const goalNode = nodes[goalId]
   const hFunc = options.heuristicFn ?? euclideanHeuristic
 
-  const computeH = (nodeId) => {
-    const node = nodes[nodeId]
-    return Math.round(hFunc(node, goalNode) * 10) / 10
-  }
+  const computeH = (nodeId) => getNodeHeuristic(nodeId, graph)
 
   // 2. Data structures
   const visited = new Set()

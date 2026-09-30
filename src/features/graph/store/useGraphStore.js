@@ -115,6 +115,25 @@ export const useGraphStore = create((set, get) => ({
     }))
   },
 
+  setNodeHeuristic: (nodeId, heuristic) => {
+    const val = (heuristic === '' || heuristic === null || heuristic === undefined)
+      ? null
+      : (isNaN(Number(heuristic)) ? 0 : Math.max(0, Number(heuristic)))
+    set(state => {
+      const node = state.graph.nodes[nodeId]
+      if (!node) return state
+      return {
+        graph: {
+          ...state.graph,
+          nodes: {
+            ...state.graph.nodes,
+            [nodeId]: { ...node, hValue: val, h: val },
+          },
+        },
+      }
+    })
+  },
+
   // Edge CRUD
   addEdge: (sourceId, targetId, weight = 1) => {
     if (sourceId === targetId) return null // Prevent self-loop

@@ -24,12 +24,15 @@ import { NODE_STATE, EDGE_STATE } from './graphTypes.js'
  * @returns {GraphNode}
  */
 export function createNode(id, x, y, opts = {}) {
+  const hVal = opts.hValue ?? opts.h ?? null
   return {
     id,
     x,
     y,
-    label:  opts.label  ?? id,
-    state:  opts.state  ?? NODE_STATE.UNEXPLORED,
+    label:   opts.label   ?? id,
+    hValue:  hVal !== null && hVal !== undefined ? Number(hVal) : null,
+    h:       hVal !== null && hVal !== undefined ? Number(hVal) : null,
+    state:   opts.state   ?? NODE_STATE.UNEXPLORED,
     isStart: opts.isStart ?? false,
     isGoal:  opts.isGoal  ?? false,
   }

@@ -32,6 +32,7 @@ export default function GraphStatsPanel({ onTriggerInlineEdit }) {
   const setStart = useGraphStore(s => s.setStart)
   const setGoal = useGraphStore(s => s.setGoal)
   const setNodeLabel = useGraphStore(s => s.setNodeLabel)
+  const setNodeHeuristic = useGraphStore(s => s.setNodeHeuristic)
   const deleteNode = useGraphStore(s => s.deleteNode)
 
   const setEdgeWeight = useGraphStore(s => s.setEdgeWeight)
@@ -43,10 +44,14 @@ export default function GraphStatsPanel({ onTriggerInlineEdit }) {
 
   // Local state for immediate input changes
   const [labelInput, setLabelInput] = useState('')
+  const [hInput, setHInput] = useState('')
   const [weightInput, setWeightInput] = useState('1')
 
   useEffect(() => {
-    if (selectedNode) setLabelInput(selectedNode.label)
+    if (selectedNode) {
+      setLabelInput(selectedNode.label)
+      setHInput(selectedNode.hValue !== null && selectedNode.hValue !== undefined ? String(selectedNode.hValue) : '')
+    }
   }, [selectedNode])
 
   useEffect(() => {
@@ -64,6 +69,13 @@ export default function GraphStatsPanel({ onTriggerInlineEdit }) {
     e.preventDefault()
     if (selectedNodeId && labelInput.trim()) {
       setNodeLabel(selectedNodeId, labelInput.trim())
+    }
+  }
+
+  const handleHSubmit = (e) => {
+    e.preventDefault()
+    if (selectedNodeId) {
+      setNodeHeuristic(selectedNodeId, hInput.trim() === '' ? null : Number(hInput))
     }
   }
 
@@ -150,6 +162,31 @@ export default function GraphStatsPanel({ onTriggerInlineEdit }) {
                     <Edit2 size={13} />
                   </button>
                 </div>
+              </form>
+
+              {/* Edit Heuristic H(n) Form */}
+              <form onSubmit={handleHSubmit} className={styles.editFieldForm}>
+                <label className={styles.fieldLabel}>Heuristic H(n) [Goal Estimate]:</label>
+                <div className={styles.fieldRow}>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="Auto (Canvas Distance)"
+                    value={hInput}
+                    onChange={(e) => {
+                      setHInput(e.target.value)
+                      setNodeHeuristic(selectedNodeId, e.target.value.trim() === '' ? null : Number(e.target.value))
+                    }}
+                    className={styles.fieldInput}
+                  />
+                  <button type="submit" className="btn btn-ghost btn-sm" title="Save heuristic">
+                    <Edit2 size={13} />
+                  </button>
+                </div>
+                <span style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px', display: 'block' }}>
+                  Used by Greedy & A* algorithms as user-defined h(n) value.
+                </span>
               </form>
 
               {/* Node Role Actions */}

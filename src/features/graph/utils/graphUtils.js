@@ -69,6 +69,37 @@ export function manhattanHeuristic(a, b) {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y)
 }
 
+/**
+ * Get the heuristic value h(n) for a node ID.
+ *
+ * Rules:
+ *  1. Goal node always returns 0.
+ *  2. If the user has set a custom value on the node (`node.hValue` / `node.h`),
+ *     use that value.
+ *  3. If there is NO custom value, return 0.
+ *     (No automatic geometric/euclidean/manhattan fallback — the user must
+ *      explicitly set H(n) values for algorithms that need them.)
+ *
+ * @param {string} nodeId
+ * @param {import('./graphStructures').Graph} graph
+ * @returns {number}
+ */
+export function getNodeHeuristic(nodeId, graph) {
+  if (!graph || !graph.nodes || !graph.nodes[nodeId]) return 0
+  if (nodeId === graph.goalId) return 0
+
+  const node = graph.nodes[nodeId]
+
+  // Use custom user-defined heuristic value if present
+  const customVal = node.hValue ?? node.h ?? null
+  if (customVal !== null && customVal !== '' && !isNaN(Number(customVal))) {
+    return Math.max(0, Number(customVal))
+  }
+
+  // No fallback — unset H(n) defaults to 0
+  return 0
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Path reconstruction
 // ─────────────────────────────────────────────────────────────────────────────
@@ -173,12 +204,12 @@ export function createPresetGraph() {
     startId: 'A',
     goalId:  'F',
     nodes: {
-      A: { id: 'A', label: 'A', x: 100, y: 250, isStart: true,  isGoal: false },
-      B: { id: 'B', label: 'B', x: 260, y: 120, isStart: false, isGoal: false },
-      C: { id: 'C', label: 'C', x: 260, y: 380, isStart: false, isGoal: false },
-      D: { id: 'D', label: 'D', x: 440, y: 200, isStart: false, isGoal: false },
-      E: { id: 'E', label: 'E', x: 440, y: 340, isStart: false, isGoal: false },
-      F: { id: 'F', label: 'F', x: 620, y: 250, isStart: false, isGoal: true  },
+      A: { id: 'A', label: 'A', x: 100, y: 250, isStart: true,  isGoal: false, hValue: 10, h: 10 },
+      B: { id: 'B', label: 'B', x: 260, y: 120, isStart: false, isGoal: false, hValue: 6,  h: 6  },
+      C: { id: 'C', label: 'C', x: 260, y: 380, isStart: false, isGoal: false, hValue: 7,  h: 7  },
+      D: { id: 'D', label: 'D', x: 440, y: 200, isStart: false, isGoal: false, hValue: 3,  h: 3  },
+      E: { id: 'E', label: 'E', x: 440, y: 340, isStart: false, isGoal: false, hValue: 4,  h: 4  },
+      F: { id: 'F', label: 'F', x: 620, y: 250, isStart: false, isGoal: true,  hValue: 0,  h: 0  },
     },
     edges: {
       'A-B': { id: 'A-B', sourceId: 'A', targetId: 'B', weight: 4,  directed: false },
