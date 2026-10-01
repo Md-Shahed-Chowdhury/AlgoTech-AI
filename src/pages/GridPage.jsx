@@ -8,6 +8,7 @@ import {
   runGridGreedy,
   runGridAStar,
   runGridHillClimbing,
+  runGridSimulatedAnnealing,
 } from '../features/grid/engine/gridEngines.js'
 import styles from './GridPage.module.css'
 
@@ -35,6 +36,16 @@ const CELL_CLASS = {
   [CELL_END]: styles.end,
   [CELL_VISITED]: styles.visited,
   [CELL_PATH]: styles.path,
+}
+
+const ALGO_LABELS = {
+  bfs: 'BFS',
+  dfs: 'DFS',
+  ucs: 'UCS',
+  greedy: 'Greedy Search',
+  astar: 'A* Search',
+  hillclimbing: 'Hill Climbing',
+  simulatedannealing: 'Simulated Annealing',
 }
 
 const ALGORITHM_INFO = {
@@ -89,6 +100,8 @@ export default function GridPage() {
   const [algorithm, setAlgorithm] = useState('bfs')
   const [heuristic, setHeuristic] = useState('manhattan') // 'manhattan' | 'euclidean'
   const [editTool, setEditTool] = useState('wall') // 'wall' | 'start' | 'goal'
+  const [saInitialTemp, setSaInitialTemp] = useState(100)
+  const [saCoolingRate, setSaCoolingRate] = useState(0.95)
 
   const stopSignalRef = useRef(false)
   const skipSignalRef = useRef(false)
@@ -213,19 +226,71 @@ export default function GridPage() {
       return
     }
 
-    if (algorithm === 'simulatedannealing') {
-      setStats(s => ({
-        ...s,
-        status: 'Not Implemented Yet',
-        commentary: `${ALGORITHM_INFO[algorithm].name} logic is not implemented yet. Select BFS, DFS, UCS, Greedy, A*, or Hill Climbing.`,
-      }))
-      return
-    }
-
     // Always compute on a PRISTINE grid snapshot (stripping CELL_VISITED & CELL_PATH)
     const cleanGrid = grid.map(row =>
       row.map(cell => (cell === CELL_VISITED || cell === CELL_PATH ? CELL_EMPTY : cell))
     )
+
+    if (algorithm === 'simulatedannealing') {
+      const res = runGridSimulatedAnnealing(cleanGrid, null, null, heuristic, {
+        initialTemp: saInitialTemp,
+        coolingRate: saCoolingRate,
+        minTemp: 0.1,
+        maxIterations: 200,
+      })
+
+      setGrid(() => {
+        const ng = cleanGrid.map(row => [...row])
+        if (res.visitedOrder && Array.isArray(res.visitedOrder)) {
+          for (const [r, c] of res.visitedOrder) {
+            if (ng[r] && ng[r][c] !== undefined && ng[r][c] !== CELL_START && ng[r][c] !== CELL_END) {
+              ng[r][c] = CELL_VISITED
+            }
+          }
+        }
+        if (res.path && Array.isArray(res.path)) {
+          for (const [r, c] of res.path) {
+            if (ng[r] && ng[r][c] !== undefined && ng[r][c] !== CELL_START && ng[r][c] !== CELL_END) {
+              ng[r][c] = CELL_PATH
+            }
+          }
+        }
+        return ng
+      })
+
+      const visitedNum = res.visitedOrder
+        ? res.visitedOrder.filter(
+            ([r, c]) => cleanGrid[r] && cleanGrid[r][c] !== undefined && cleanGrid[r][c] !== CELL_START && cleanGrid[r][c] !== CELL_END
+          ).length
+        : 0
+      const pathSteps = res.path && res.path.length > 0 ? res.path.length - 1 : 0
+      const lastCell = res.path && res.path.length > 0 ? res.path[res.path.length - 1] : null
+      const lastStep = res.steps && res.steps.length > 0 ? res.steps[res.steps.length - 1] : null
+
+      let statusText = res.found ? 'Goal Found via Simulated Annealing' : (res.terminationReason || 'Search Complete')
+      let commentaryText = res.found
+        ? `Simulated Annealing reached goal in ${pathSteps} steps across ${res.steps ? res.steps.length : 0} iterations.`
+        : `Simulated Annealing terminated: ${res.terminationReason || 'Search Complete'}`
+
+      setStats({
+        ...createInitialStats(algorithm),
+        visitedCount: visitedNum,
+        pathLength: pathSteps,
+        status: statusText,
+        commentary: commentaryText,
+        frontierSize: 0,
+        currentCell: lastCell,
+        candidateCell: lastStep ? (lastStep.candidate || lastStep.candidateCell) : null,
+        hCost: lastStep && lastStep.currentH !== undefined && lastStep.currentH !== null ? Number(lastStep.currentH).toFixed(2).replace(/\.00$/, '') : null,
+        candidateH: lastStep && lastStep.candidateH !== undefined && lastStep.candidateH !== null ? Number(lastStep.candidateH).toFixed(2).replace(/\.00$/, '') : null,
+        deltaH: lastStep && lastStep.delta !== undefined && lastStep.delta !== null ? Number(lastStep.delta).toFixed(2).replace(/\.00$/, '') : null,
+        temperature: lastStep && lastStep.temperature !== undefined && lastStep.temperature !== null ? Number(lastStep.temperature).toFixed(2).replace(/\.00$/, '') : null,
+        acceptanceProb: lastStep && lastStep.acceptanceProb !== undefined && lastStep.acceptanceProb !== null ? (typeof lastStep.acceptanceProb === 'number' ? Number(lastStep.acceptanceProb).toFixed(3) : lastStep.acceptanceProb) : null,
+        randomVal: lastStep && lastStep.randomVal !== undefined && lastStep.randomVal !== null ? Number(lastStep.randomVal).toFixed(3) : null,
+        annealingDecision: res.found ? 'Goal Reached' : (res.terminationReason || 'Terminated'),
+      })
+      return
+    }
 
     const engineMap = {
       bfs: runGridBFS,
@@ -1053,6 +1118,115 @@ export default function GridPage() {
     }
   }
 
+  // 7. Simulated Annealing (Stochastic Local Search)
+  const runSimulatedAnnealing = async () => {
+    setRunning(true)
+    stopSignalRef.current = false
+    skipSignalRef.current = false
+    clearExecutionState()
+    const cleanGrid = grid.map(row =>
+      row.map(cell => (cell === CELL_VISITED || cell === CELL_PATH ? CELL_EMPTY : cell))
+    )
+
+    const res = runGridSimulatedAnnealing(cleanGrid, null, null, heuristic, {
+      initialTemp: saInitialTemp,
+      coolingRate: saCoolingRate,
+      minTemp: 0.1,
+      maxIterations: 200,
+    })
+
+    setStats({
+      ...createInitialStats('simulatedannealing'),
+      status: 'Running Simulated Annealing...',
+      commentary: `Simulated Annealing initialized with T = ${saInitialTemp}, alpha = ${saCoolingRate}.`,
+    })
+
+    const steps = res.steps || []
+    for (let i = 0; i < steps.length; i++) {
+      if (stopSignalRef.current) {
+        setRunning(false)
+        setStats(s => ({ ...s, status: 'Simulation Stopped', commentary: 'Simulation stopped by user.' }))
+        return
+      }
+
+      const step = steps[i]
+      const stepVisited = step.visitedOrder || []
+      const stepTrajectory = step.trajectory || step.path || []
+
+      setGrid(() => {
+        const ng = cleanGrid.map(row => [...row])
+        for (const [r, c] of stepVisited) {
+          if (ng[r] && ng[r][c] !== undefined && ng[r][c] !== CELL_START && ng[r][c] !== CELL_END) {
+            ng[r][c] = CELL_VISITED
+          }
+        }
+        return ng
+      })
+
+      const formattedCurH = step.currentH !== undefined && step.currentH !== null ? Number(step.currentH).toFixed(2).replace(/\.00$/, '') : '—'
+      const formattedCandH = step.candidateH !== undefined && step.candidateH !== null ? Number(step.candidateH).toFixed(2).replace(/\.00$/, '') : '—'
+      const formattedDelta = step.delta !== undefined && step.delta !== null ? Number(step.delta).toFixed(2).replace(/\.00$/, '') : '—'
+      const formattedTemp = step.temperature !== undefined && step.temperature !== null ? Number(step.temperature).toFixed(2).replace(/\.00$/, '') : '—'
+      const formattedProb = step.acceptanceProb !== undefined && step.acceptanceProb !== null ? (typeof step.acceptanceProb === 'number' ? Number(step.acceptanceProb).toFixed(3) : step.acceptanceProb) : '—'
+      const formattedRand = step.randomVal !== undefined && step.randomVal !== null ? Number(step.randomVal).toFixed(3) : '—'
+
+      let decisionText = 'No Valid Move'
+      if (step.accepted) {
+        decisionText = step.delta <= 0 ? 'Accepted (Better/Equal)' : 'Accepted Worse Move'
+      } else if (step.reason && step.reason.includes('Rejected')) {
+        decisionText = 'Rejected Worse Move'
+      } else if (step.reason) {
+        decisionText = step.reason
+      }
+
+      setStats({
+        ...createInitialStats('simulatedannealing'),
+        visitedCount: stepVisited.length,
+        pathLength: stepTrajectory.length > 0 ? stepTrajectory.length - 1 : 0,
+        status: step.goalReached ? 'Goal Found!' : `Simulated Annealing (Iter ${step.iteration})`,
+        commentary: step.reason || '',
+        currentCell: step.current || step.currentCell || null,
+        candidateCell: step.candidate || step.candidateCell || null,
+        hCost: formattedCurH,
+        candidateH: formattedCandH,
+        deltaH: formattedDelta,
+        temperature: formattedTemp,
+        acceptanceProb: formattedProb,
+        randomVal: formattedRand,
+        annealingDecision: decisionText,
+      })
+
+      await stepDelay(120)
+    }
+
+    if (res.found && !stopSignalRef.current) {
+      const finalPath = res.path || []
+      for (const [r, c] of finalPath) {
+        if (stopSignalRef.current) { setRunning(false); return }
+        if (cleanGrid[r] && cleanGrid[r][c] !== undefined && cleanGrid[r][c] !== CELL_START && cleanGrid[r][c] !== CELL_END) {
+          setGrid(prev => {
+            const ng = prev.map(row => [...row])
+            ng[r][c] = CELL_PATH
+            return ng
+          })
+          await stepDelay(30)
+        }
+      }
+      setStats(s => ({
+        ...s,
+        status: 'Goal Found via Simulated Annealing',
+        commentary: `Simulated Annealing successfully reached goal in ${finalPath.length - 1} steps. Trajectory shown.`,
+      }))
+    } else if (!stopSignalRef.current) {
+      setStats(s => ({
+        ...s,
+        status: res.terminationReason || 'Terminated',
+        commentary: `Simulated Annealing terminated: ${res.terminationReason || 'Search finished'}`,
+      }))
+    }
+    setRunning(false)
+  }
+
   const handleRun = () => {
     if (algorithm === 'bfs') runBFS()
     else if (algorithm === 'dfs') runDFS()
@@ -1060,13 +1234,7 @@ export default function GridPage() {
     else if (algorithm === 'greedy') runGreedy()
     else if (algorithm === 'astar') runAStar()
     else if (algorithm === 'hillclimbing') runHillClimbing()
-    else if (algorithm === 'simulatedannealing') {
-      setStats(s => ({
-        ...s,
-        status: 'Not Implemented Yet',
-        commentary: `${ALGORITHM_INFO[algorithm].name} logic is not implemented yet. Select BFS, DFS, UCS, Greedy, A*, or Hill Climbing.`,
-      }))
-    }
+    else if (algorithm === 'simulatedannealing') runSimulatedAnnealing()
   }
 
   const info = ALGORITHM_INFO[algorithm]
@@ -1162,6 +1330,35 @@ export default function GridPage() {
           </select>
         )}
 
+        {algorithm === 'simulatedannealing' && (
+          <>
+            <select
+              id="grid-sa-temp-select"
+              className={styles.select}
+              value={saInitialTemp}
+              onChange={e => setSaInitialTemp(Number(e.target.value))}
+              title="Select Initial Temperature T"
+            >
+              <option value={50}>Initial Temp: 50</option>
+              <option value={100}>Initial Temp: 100 (Default)</option>
+              <option value={200}>Initial Temp: 200</option>
+              <option value={500}>Initial Temp: 500</option>
+            </select>
+            <select
+              id="grid-sa-cooling-select"
+              className={styles.select}
+              value={saCoolingRate}
+              onChange={e => setSaCoolingRate(Number(e.target.value))}
+              title="Select Cooling Rate (alpha)"
+            >
+              <option value={0.80}>Cooling Rate α: 0.80 (Fast)</option>
+              <option value={0.90}>Cooling Rate α: 0.90</option>
+              <option value={0.95}>Cooling Rate α: 0.95 (Default)</option>
+              <option value={0.98}>Cooling Rate α: 0.98 (Slow)</option>
+            </select>
+          </>
+        )}
+
         <select
           id="grid-speed-select"
           className={styles.select}
@@ -1183,7 +1380,7 @@ export default function GridPage() {
               className={`btn btn-primary`}
               onClick={handleRun}
             >
-              <Play size={15} /> Run {algorithm.toUpperCase()}
+              <Play size={15} /> Run {ALGO_LABELS[algorithm] || algorithm}
             </button>
             <button
               id="grid-skip"
