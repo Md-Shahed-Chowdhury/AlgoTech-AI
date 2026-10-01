@@ -275,3 +275,86 @@ export function runGridAStar(grid, startCoords, endCoords, heuristic = 'manhatta
   const path = found ? reconstructPath(parent, endR, endC) : []
   return { found, path, visitedOrder, parent, visited, gScore }
 }
+
+// 6. Grid Hill Climbing (Local Search)
+export function runGridHillClimbing(grid, startCoords, endCoords, heuristic = 'manhattan') {
+  const rows = grid.length
+  const cols = grid[0].length
+  const coords = getGridCoordinates(grid)
+  const [startR, startC] = startCoords || coords.start
+  const [endR, endC] = endCoords || coords.end
+
+  const visitedOrder = []
+  const path = []
+  const steps = []
+
+  let current = [startR, startC]
+  const visited = Array.from({ length: rows }, () => new Array(cols).fill(false))
+  visited[startR][startC] = true
+  path.push(current)
+
+  let found = false
+  let stuck = false
+  let stepCount = 0
+
+  while (true) {
+    const [cr, cc] = current
+    const currentH = getHeuristicDistance(cr, cc, endR, endC, heuristic)
+
+    if (cr === endR && cc === endC) {
+      found = true
+      break
+    }
+
+    const candidateNeighbors = []
+    let bestNeighbor = null
+    let bestH = Infinity
+
+    for (const [dr, dc] of DIRS) {
+      const nr = cr + dr, nc = cc + dc
+      if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue
+      if (grid[nr][nc] === CELL_WALL || visited[nr][nc]) continue
+
+      const hVal = getHeuristicDistance(nr, nc, endR, endC, heuristic)
+      candidateNeighbors.push({ cell: [nr, nc], h: hVal })
+
+      if (hVal < bestH) {
+        bestH = hVal
+        bestNeighbor = [nr, nc]
+      }
+    }
+
+    // Strict local improvement criterion: best neighbor h(n) must be strictly less than current cell h(n)
+    const improved = bestNeighbor !== null && bestH < currentH
+
+    steps.push({
+      step: stepCount++,
+      currentCell: [cr, cc],
+      currentH,
+      candidateNeighbors,
+      selectedNeighbor: improved ? bestNeighbor : null,
+      selectedH: improved ? bestH : null,
+      improved,
+      visitedCount: visitedOrder.length,
+      path: [...path],
+    })
+
+    if (improved) {
+      current = bestNeighbor
+      visited[bestNeighbor[0]][bestNeighbor[1]] = true
+      visitedOrder.push(bestNeighbor)
+      path.push(bestNeighbor)
+    } else {
+      stuck = true
+      break
+    }
+  }
+
+  return {
+    found,
+    stuck,
+    path,
+    visitedOrder,
+    steps,
+  }
+}

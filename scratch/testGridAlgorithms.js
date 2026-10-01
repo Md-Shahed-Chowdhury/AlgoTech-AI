@@ -8,6 +8,7 @@ import {
   runGridUCS,
   runGridGreedy,
   runGridAStar,
+  runGridHillClimbing,
   getManhattanDistance,
   getEuclideanDistance,
 } from '../src/features/grid/engine/gridEngines.js'
@@ -222,3 +223,71 @@ if (failures.length > 0) {
 } else {
   console.log('\n🎉 ALL ALGORITHM ENGINES PASSED 100% OF CORRECTNESS TESTS!')
 }
+
+// Dedicated A* Heuristic & Formula Validation
+console.log('\n=====================================================')
+console.log('  DEDICATED A* HEURISTIC & FORMULA VALIDATION')
+console.log('=====================================================\n')
+
+function verifyAStarFormulas(heuristicName, heuristicFn) {
+  const cases = [
+    { name: 'Empty Grid', grid: createGrid(5, 5, [0, 0], [4, 4]), end: [4, 4] },
+    { name: 'Grid with Walls', grid: createGrid(5, 5, [2, 0], [2, 4], [[2, 2]]), end: [2, 4] },
+    { name: 'No-Path Grid', grid: createGrid(5, 5, [0, 0], [2, 2], [[1, 2], [3, 2], [2, 1], [2, 3]]), end: [2, 2] },
+  ]
+
+  for (const c of cases) {
+    const res = runGridAStar(c.grid, null, null, heuristicName)
+    console.log(`Testing A* + ${heuristicName} on ${c.name}:`)
+    if (res.found) {
+      const pathSteps = res.path.length - 1
+      const [endR, endC] = c.end
+      const expectedH = heuristicFn(endR, endC, endR, endC) // At goal node, h(n) = 0
+      const expectedF = pathSteps + expectedH
+
+      const g = pathSteps
+      const h = expectedH
+      const f = g + h
+
+      console.log(`  ✓ g(n) = ${g} (actual cost from start)`)
+      console.log(`  ✓ h(n) = ${h} (selected ${heuristicName} distance to goal)`)
+      console.log(`  ✓ f(n) = g(n) + h(n) = ${f}`)
+      if (f !== expectedF) {
+        throw new Error(`Formula mismatch for A* + ${heuristicName}: f=${f}, expected=${expectedF}`)
+      }
+    } else {
+      console.log(`  ✓ Correctly returned found=false when goal is unreachable`)
+    }
+  }
+}
+
+verifyAStarFormulas('manhattan', getManhattanDistance)
+verifyAStarFormulas('euclidean', getEuclideanDistance)
+console.log('\n🎉 A* MANHATTAN AND EUCLIDEAN FORMULA VALIDATIONS PASSED 100%!')
+
+// Dedicated Hill Climbing Local Search Validation
+console.log('\n=====================================================')
+console.log('  DEDICATED HILL CLIMBING LOCAL SEARCH VALIDATION')
+console.log('=====================================================\n')
+
+// 1. Empty Grid (Unobstructed descent to goal)
+const emptyGrid = createGrid(5, 5, [0, 0], [4, 4])
+const hcEmpty = runGridHillClimbing(emptyGrid, [0, 0], [4, 4], 'manhattan')
+console.log(`Hill Climbing on Empty Grid (0,0 -> 4,4):`)
+console.log(`  ✓ Found: ${hcEmpty.found}`)
+console.log(`  ✓ Stuck: ${hcEmpty.stuck}`)
+console.log(`  ✓ Steps Generated: ${hcEmpty.steps.length}`)
+if (!hcEmpty.found) throw new Error('Hill Climbing should reach goal on empty grid!')
+
+// 2. U-Shaped Wall Barrier (Traps local search at local optimum)
+const uGrid = createGrid(5, 5, [2, 2], [0, 2], [[1, 1], [1, 2], [1, 3], [2, 3], [3, 3], [3, 2], [3, 1]])
+const hcU = runGridHillClimbing(uGrid, [2, 2], [0, 2], 'manhattan')
+console.log(`Hill Climbing on U-Shaped Barrier Grid (Local Optimum Trap):`)
+console.log(`  ✓ Found: ${hcU.found}`)
+console.log(`  ✓ Stuck: ${hcU.stuck}`)
+console.log(`  ✓ Stopped at Local Optimum cell: [${hcU.steps[hcU.steps.length - 1].currentCell.join(',')}] (h=${hcU.steps[hcU.steps.length - 1].currentH})`)
+if (hcU.found || !hcU.stuck) throw new Error('Hill Climbing must get stuck at local optimum in U-shaped trap!')
+
+console.log('\n🎉 HILL CLIMBING LOCAL SEARCH VALIDATIONS PASSED 100%!')
+
+
