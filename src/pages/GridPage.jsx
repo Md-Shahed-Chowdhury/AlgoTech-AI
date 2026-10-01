@@ -337,11 +337,114 @@ export default function GridPage() {
     setRunning(false)
   }
 
+  // Min-Heap A* Search visualizer (Priority key f(n) = g(n) + h(n))
+  const runAStar = async () => {
+    setRunning(true)
+    const g = grid.map(row => [...row])
+
+    let startR, startC, endR, endC
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++) {
+        if (g[r][c] === CELL_START) { startR = r; startC = c }
+        if (g[r][c] === CELL_END)   { endR   = r; endC   = c }
+      }
+
+    // Manhattan Distance Heuristic
+    const getHeuristic = (r, c) => Math.abs(r - endR) + Math.abs(c - endC)
+
+    const gScore  = Array.from({ length: ROWS }, () => new Array(COLS).fill(Infinity))
+    const visited = Array.from({ length: ROWS }, () => new Array(COLS).fill(false))
+    const parent  = Array.from({ length: ROWS }, () => new Array(COLS).fill(null))
+
+    const pq = new MinHeap()
+    const startH = getHeuristic(startR, startC)
+    gScore[startR][startC] = 0
+
+    pq.push({
+      id: `${startR},${startC}`,
+      priority: startH,
+      r: startR,
+      c: startC,
+      gCost: 0,
+      hCost: startH,
+      fCost: startH,
+    })
+
+    const dirs = [[0,1],[1,0],[0,-1],[-1,0]]
+    let found = false
+
+    const delay = ms => new Promise(r => setTimeout(r, ms))
+
+    while (!pq.isEmpty()) {
+      const top = pq.pop()
+      const { r, c, gCost } = top
+
+      if (visited[r][c]) continue
+      visited[r][c] = true
+
+      if (r === endR && c === endC) { found = true; break }
+
+      if (g[r][c] !== CELL_START && g[r][c] !== CELL_END) {
+        setGrid(prev => {
+          const ng = prev.map(row => [...row])
+          ng[r][c] = CELL_VISITED
+          return ng
+        })
+        await delay(18)
+      }
+
+      for (const [dr, dc] of dirs) {
+        const nr = r + dr, nc = c + dc
+        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue
+        if (g[nr][nc] === CELL_WALL || g[nr][nc] === CELL_START) continue
+
+        const movementCost = 1
+        const newGCost = gCost + movementCost
+
+        if (newGCost < gScore[nr][nc]) {
+          gScore[nr][nc] = newGCost
+          parent[nr][nc] = [r, c]
+          const hVal = getHeuristic(nr, nc)
+          const fVal = newGCost + hVal
+          pq.push({
+            id: `${nr},${nc}`,
+            priority: fVal,
+            r: nr,
+            c: nc,
+            gCost: newGCost,
+            hCost: hVal,
+            fCost: fVal,
+          })
+        }
+      }
+    }
+
+    if (found) {
+      // Trace back path
+      let cur = [endR, endC]
+      const path = []
+      while (cur) { path.push(cur); cur = parent[cur[0]][cur[1]] }
+      path.reverse()
+      for (const [r, c] of path) {
+        if (g[r][c] !== CELL_START && g[r][c] !== CELL_END) {
+          setGrid(prev => {
+            const ng = prev.map(row => [...row])
+            ng[r][c] = CELL_PATH
+            return ng
+          })
+          await delay(30)
+        }
+      }
+    }
+    setRunning(false)
+  }
+
   const handleRun = () => {
     if (algorithm === 'bfs') runBFS()
     else if (algorithm === 'dfs') runDFS()
     else if (algorithm === 'ucs') runUCS()
     else if (algorithm === 'greedy') runGreedy()
+    else if (algorithm === 'astar') runAStar()
   }
 
   return (
@@ -387,6 +490,7 @@ export default function GridPage() {
           <option value="dfs">Depth-First Search (DFS)</option>
           <option value="ucs">Uniform-Cost Search (UCS / Dijkstra)</option>
           <option value="greedy">Greedy Best-First Search</option>
+          <option value="astar">A* Search</option>
         </select>
         <button
           id="grid-run"
