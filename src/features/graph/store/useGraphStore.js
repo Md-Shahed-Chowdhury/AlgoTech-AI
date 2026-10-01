@@ -43,7 +43,9 @@ export const useGraphStore = create((set, get) => ({
 
   // Node CRUD
   addNode: (x, y, customLabel = null) => {
-    const id    = nextNodeId()
+    // Skip ids already taken (loadGraph does not know which labels a graph used)
+    let id = nextNodeId()
+    while (get().graph.nodes[id]) id = nextNodeId()
     const label = customLabel || id
     const node  = createNode(id, x, y, { label })
     

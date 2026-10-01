@@ -226,3 +226,81 @@ export function createPresetGraph() {
     },
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Comparison presets — small graphs where the algorithms visibly disagree
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Build a Graph from compact node / edge tuples. */
+function buildPreset(startId, goalId, nodeList, edgeList) {
+  const nodes = {}
+  for (const [id, x, y, h] of nodeList) {
+    nodes[id] = { id, label: id, x, y, isStart: id === startId, isGoal: id === goalId, hValue: h, h }
+  }
+  const edges = {}
+  for (const [sourceId, targetId, weight] of edgeList) {
+    const id = `${sourceId}-${targetId}`
+    edges[id] = { id, sourceId, targetId, weight, directed: false }
+  }
+  return { startId, goalId, nodes, edges }
+}
+
+export const COMPARISON_PRESETS = [
+  {
+    id: 'classic',
+    name: 'Classic',
+    description: 'The default teaching graph used in Learn mode.',
+    create: createPresetGraph,
+  },
+  {
+    id: 'weighted-shortcut',
+    name: 'Weighted Shortcut',
+    description: 'A 2-hop route that costs 11 vs. a 4-hop route that costs 4. Hop-counting BFS picks the expensive one.',
+    create: () => buildPreset('A', 'G',
+      [['A', 100, 250, 4], ['B', 360, 90, 5], ['C', 220, 410, 3], ['D', 360, 430, 2], ['E', 500, 410, 1], ['G', 620, 250, 0]],
+      [['A', 'B', 1], ['B', 'G', 10], ['A', 'C', 1], ['C', 'D', 1], ['D', 'E', 1], ['E', 'G', 1]],
+    ),
+  },
+  {
+    id: 'dfs-trap',
+    name: 'DFS Trap',
+    description: 'A long dead-end branch DFS dives into before trying the short route to the goal.',
+    create: () => buildPreset('A', 'G',
+      [
+        ['A', 90, 250, 3], ['B', 230, 110, 4], ['C', 380, 70, 5], ['D', 530, 90, 6], ['E', 640, 170, 7],
+        ['H', 380, 170, 5], ['F', 300, 380, 2], ['I', 470, 400, 1], ['G', 620, 330, 0],
+      ],
+      [
+        ['A', 'B', 1], ['B', 'C', 1], ['C', 'D', 1], ['D', 'E', 1], ['B', 'H', 1], ['C', 'H', 1],
+        ['A', 'F', 1], ['F', 'I', 1], ['I', 'G', 1],
+      ],
+    ),
+  },
+  {
+    id: 'misleading-heuristic',
+    name: 'Misleading Heuristic',
+    description: 'B looks closest to the goal (h = 1) but its edge to G costs 10. Greedy takes the bait; A* recovers.',
+    create: () => buildPreset('A', 'G',
+      [['A', 100, 250, 6], ['B', 360, 90, 1], ['C', 230, 400, 4], ['D', 450, 400, 2], ['E', 330, 250, 6], ['G', 620, 250, 0]],
+      [['A', 'B', 1], ['B', 'G', 10], ['A', 'C', 2], ['C', 'D', 2], ['D', 'G', 2], ['A', 'E', 3], ['E', 'C', 2]],
+    ),
+  },
+  {
+    id: 'lattice',
+    name: 'Weighted Lattice',
+    description: 'A 4×3 grid with mixed weights — larger search space, so expansion counts diverge more.',
+    create: () => buildPreset('A', 'L',
+      [
+        ['A', 90, 90, 5],  ['B', 260, 90, 4],  ['C', 430, 90, 3],  ['D', 600, 90, 2],
+        ['E', 90, 250, 4], ['F', 260, 250, 3], ['G', 430, 250, 2], ['H', 600, 250, 1],
+        ['I', 90, 410, 3], ['J', 260, 410, 2], ['K', 430, 410, 1], ['L', 600, 410, 0],
+      ],
+      [
+        ['A', 'B', 1], ['B', 'C', 4], ['C', 'D', 1], ['E', 'F', 2], ['F', 'G', 1], ['G', 'H', 5],
+        ['I', 'J', 1], ['J', 'K', 1], ['K', 'L', 1],
+        ['A', 'E', 1], ['E', 'I', 1], ['B', 'F', 3], ['F', 'J', 2], ['C', 'G', 1], ['G', 'K', 4],
+        ['D', 'H', 6], ['H', 'L', 1],
+      ],
+    ),
+  },
+]

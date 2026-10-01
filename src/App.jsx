@@ -7,6 +7,7 @@ import GridPage from './pages/GridPage'
 
 import LearnModePage from './features/graph/components/LearnModePage/LearnModePage.jsx'
 import ExamModePage from './features/graph/components/ExamModePage/ExamModePage.jsx'
+import ComparePage from './features/compare/components/ComparePage/ComparePage.jsx'
 
 function NotFound() {
   return (
@@ -40,6 +41,9 @@ export default function App() {
           <Route path="/graph/learn/:algorithmId" element={<LearnModePage />} />
           <Route path="/graph/exam" element={<ExamModePage />} />
           <Route path="/graph/exam/:algorithmId" element={<ExamModePage />} />
+
+          {/* Algorithm Comparison */}
+          <Route path="/compare" element={<ComparePage />} />
 
           <Route path="*"      element={<NotFound />} />
         </Routes>

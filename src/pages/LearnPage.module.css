@@ -81,3 +81,21 @@
   padding: 0.45rem 0.75rem;
   font-size: 0.8rem;
 }
+
+.compareLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  padding: 0.2rem;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--fast);
+}
+
+.compareLink:hover { color: #38bdf8; }

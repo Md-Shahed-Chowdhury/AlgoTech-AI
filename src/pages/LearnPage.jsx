@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { BookOpen, ClipboardList } from 'lucide-react'
+import { BookOpen, ClipboardList, GitCompareArrows } from 'lucide-react'
 import styles from './LearnPage.module.css'
 
 const TOPICS = [
@@ -52,6 +52,12 @@ export default function LearnPage() {
                 <ClipboardList size={13} /> Give Test
               </button>
             </div>
+            <button
+              className={styles.compareLink}
+              onClick={() => navigate(`/compare?algos=${id},${id === 'astar' ? 'ucs' : 'astar'}`)}
+            >
+              <GitCompareArrows size={13} /> Compare with {id === 'astar' ? 'UCS' : 'A*'}
+            </button>
           </article>
         ))}
       </div>
