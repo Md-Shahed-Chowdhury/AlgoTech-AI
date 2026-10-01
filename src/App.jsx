@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Navbar from './components/Navbar'
+import AILabBackground from './components/AILabBackground/AILabBackground'
 import LearnPage from './pages/LearnPage'
 import TestPage from './pages/TestPage'
 import GridPage from './pages/GridPage'
@@ -22,6 +23,9 @@ function NotFound() {
 export default function App() {
   return (
     <BrowserRouter>
+      {/* Optional Three.js AI Laboratory ambient background overlay */}
+      <AILabBackground />
+
       <Navbar />
       <main style={{ flex: 1 }}>
         <Routes>
@@ -34,6 +38,7 @@ export default function App() {
           {/* Graph Search Routes */}
           <Route path="/graph/learn" element={<LearnModePage />} />
           <Route path="/graph/learn/:algorithmId" element={<LearnModePage />} />
+          <Route path="/graph/exam" element={<ExamModePage />} />
           <Route path="/graph/exam/:algorithmId" element={<ExamModePage />} />
 
           <Route path="*"      element={<NotFound />} />

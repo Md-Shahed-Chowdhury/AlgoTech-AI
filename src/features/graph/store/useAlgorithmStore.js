@@ -56,11 +56,12 @@ export const useAlgorithmStore = create((set, get) => ({
    * @param {object} [options]
    */
   prepare: (graph, options = {}) => {
-    const { selectedAlgorithm } = get()
-    const steps        = runAlgorithm(selectedAlgorithm, graph, options)
-    const explanations = explainAllSteps(steps, selectedAlgorithm, graph)
+    const algo = (typeof options === 'string' ? options : options?.algorithmId) ?? get().selectedAlgorithm ?? ALGORITHM.BFS
+    const steps        = runAlgorithm(algo, graph, typeof options === 'object' ? options : {})
+    const explanations = explainAllSteps(steps, algo, graph)
 
     set({
+      selectedAlgorithm: algo,
       steps,
       explanations,
       currentStepIndex: 0,

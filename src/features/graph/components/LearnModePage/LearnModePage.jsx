@@ -17,6 +17,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useGraphStore } from '../../store/useGraphStore.js'
 import { useAlgorithmStore } from '../../store/useAlgorithmStore.js'
 import { ALGORITHM, ALGORITHM_META } from '../../types/graphTypes.js'
+import { createPresetGraph } from '../../utils/graphUtils.js'
 
 import GraphCanvas from '../GraphCanvas/GraphCanvas.jsx'
 import GraphBuilder from '../GraphBuilder/GraphBuilder.jsx'
@@ -40,6 +41,7 @@ export default function LearnModePage() {
   const navigate = useNavigate()
 
   const graph = useGraphStore(s => s.graph)
+  const loadPreset = useGraphStore(s => s.loadPreset)
   const selectedAlgorithm = useAlgorithmStore(s => s.selectedAlgorithm)
   const setAlgorithm = useAlgorithmStore(s => s.setAlgorithm)
   const prepare = useAlgorithmStore(s => s.prepare)
@@ -50,12 +52,13 @@ export default function LearnModePage() {
   const currentStep = steps[currentStepIndex] ?? null
   const totalSteps = steps.length
 
-  // Sync URL parameter algorithmId → store & auto-prepare simulation steps
+  // Sync URL parameter algorithmId → store & auto-reset to default preset graph
   useEffect(() => {
     const activeAlgo = algorithmId || ALGORITHM.BFS
-    setAlgorithm(activeAlgo)
-    prepare(graph)
-  }, [algorithmId, graph, setAlgorithm, prepare])
+    loadPreset()
+    const defaultGraph = createPresetGraph()
+    prepare(defaultGraph, { algorithmId: activeAlgo })
+  }, [algorithmId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const meta = ALGORITHM_META[selectedAlgorithm] || ALGORITHM_META[ALGORITHM.BFS]
 
@@ -75,8 +78,17 @@ export default function LearnModePage() {
       <div className={styles.headerCard}>
         <div className={styles.headerMain}>
           <div className={styles.headerLeftInfo}>
-            <div className={styles.pill}>
-              <BookOpen size={13} /> Learn Mode Simulator
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div className={styles.pill}>
+                <BookOpen size={13} /> Learn Mode Simulator
+              </div>
+              <button
+                className="btn btn-secondary"
+                onClick={() => navigate(`/graph/exam/${selectedAlgorithm}`)}
+                style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem', gap: '0.35rem' }}
+              >
+                📝 Give Exam
+              </button>
             </div>
             <h1 className={styles.title}>
               <span className="gradient-text">{meta.name}</span>

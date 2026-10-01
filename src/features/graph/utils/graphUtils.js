@@ -19,13 +19,17 @@
  */
 export function buildAdjacency(graph, directed = false) {
   const adj = {}
+  if (!graph || !graph.nodes) return adj
   for (const id of Object.keys(graph.nodes)) {
     adj[id] = []
   }
+  if (!graph.edges) return adj
   for (const edge of Object.values(graph.edges)) {
     const { sourceId, targetId, weight, id: edgeId } = edge
-    adj[sourceId].push({ neighborId: targetId, edgeId, weight })
-    if (!directed && !edge.directed) {
+    if (adj[sourceId]) {
+      adj[sourceId].push({ neighborId: targetId, edgeId, weight })
+    }
+    if (!directed && !edge.directed && adj[targetId]) {
       adj[targetId].push({ neighborId: sourceId, edgeId, weight })
     }
   }

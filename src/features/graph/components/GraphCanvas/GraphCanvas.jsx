@@ -22,6 +22,7 @@ import styles from './GraphCanvas.module.css'
 
 function deriveNodeStates(step, graph) {
   const map = {}
+  if (!graph || !graph.nodes) return map
   for (const id of Object.keys(graph.nodes)) {
     const node = graph.nodes[id]
     if (node.isStart) map[id] = NODE_STATE.START
@@ -39,9 +40,7 @@ function deriveNodeStates(step, graph) {
     map[id] = NODE_STATE.FRONTIER
   }
   for (const id of step.visitedNodes ?? []) {
-    if (!graph.nodes[id]?.isStart && !graph.nodes[id]?.isGoal) {
-      map[id] = NODE_STATE.VISITED
-    }
+    map[id] = NODE_STATE.VISITED
   }
   for (const id of step.pathNodes ?? []) {
     if (!graph.nodes[id]?.isStart && !graph.nodes[id]?.isGoal) {
@@ -68,7 +67,15 @@ function deriveEdgeStates(step) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function GraphCanvas({ readOnly = false, width = 850, height = 550 }) {
+export default function GraphCanvas({
+  readOnly = false,
+  width = 850,
+  height = 550,
+  onNodeClick,
+  activeStep,
+  feedbackNodeId,
+  feedbackType,
+}) {
   const svgRef = useRef(null)
 
   // Graph topology store
@@ -94,10 +101,15 @@ export default function GraphCanvas({ readOnly = false, width = 850, height = 55
   const clearSelection = useGraphStore(s => s.clearSelection)
   const setPendingEdgeSrc = useGraphStore(s => s.setPendingEdgeSrc)
 
-  // Algorithm step data
-  const currentStep = useAlgorithmStore(s => s.steps[s.currentStepIndex] ?? null)
+  // Algorithm step data (use explicit activeStep if passed, e.g. in Exam mode)
+  const storeStep = useAlgorithmStore(s => s.steps[s.currentStepIndex] ?? null)
+  const currentStep = activeStep !== undefined ? activeStep : storeStep
   const nodeStates = deriveNodeStates(currentStep, graph)
   const edgeStates = deriveEdgeStates(currentStep)
+
+  if (feedbackNodeId) {
+    nodeStates[feedbackNodeId] = feedbackType === 'correct' ? 'exam-correct' : 'exam-wrong'
+  }
 
   // Dragging & Mouse Pointer tracking state
   const [dragNodeId, setDragNodeId] = useState(null)
@@ -176,8 +188,13 @@ export default function GraphCanvas({ readOnly = false, width = 850, height = 55
   }
 
   const handleNodeClick = (nodeId, e) => {
-    if (readOnly) return
+    if (readOnly && !onNodeClick) return
     e.stopPropagation()
+
+    if (onNodeClick) {
+      onNodeClick(nodeId, e)
+      return
+    }
 
     switch (builderMode) {
       case BUILDER_MODE.SELECT:
@@ -294,12 +311,12 @@ export default function GraphCanvas({ readOnly = false, width = 850, height = 55
 
         {/* Edges layer */}
         <g className="edgesLayer">
-          {Object.values(graph.edges).map(edge => (
+          {Object.values(graph?.edges ?? {}).map(edge => (
             <EdgeComponent
               key={edge.id}
               edge={edge}
-              sourceNode={graph.nodes[edge.sourceId]}
-              targetNode={graph.nodes[edge.targetId]}
+              sourceNode={graph?.nodes?.[edge.sourceId]}
+              targetNode={graph?.nodes?.[edge.targetId]}
               state={edgeStates[edge.id] ?? EDGE_STATE.DEFAULT}
               isSelected={selectedEdgeId === edge.id}
               readOnly={readOnly}
@@ -368,7 +385,7 @@ export default function GraphCanvas({ readOnly = false, width = 850, height = 55
         {/* Nodes layer */}
         <g className="nodesLayer">
           <AnimatePresence>
-            {Object.values(graph.nodes).map(node => (
+            {Object.values(graph?.nodes ?? {}).map(node => (
               <NodeComponent
                 key={node.id}
                 node={node}
