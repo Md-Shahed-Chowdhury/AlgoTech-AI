@@ -32,6 +32,7 @@ export default function GridPage() {
   const [grid, setGrid]       = useState(makeGrid)
   const [drawing, setDrawing] = useState(false)
   const [running, setRunning] = useState(false)
+  const [algorithm, setAlgorithm] = useState('bfs')
 
   const toggleCell = useCallback((r, c) => {
     setGrid(prev => {
@@ -109,6 +110,80 @@ export default function GridPage() {
     setRunning(false)
   }
 
+  // Stack-based Grid DFS visualizer
+  const runDFS = async () => {
+    setRunning(true)
+    const g = grid.map(row => [...row])
+
+    let startR, startC, endR, endC
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++) {
+        if (g[r][c] === CELL_START) { startR = r; startC = c }
+        if (g[r][c] === CELL_END)   { endR   = r; endC   = c }
+      }
+
+    const visited = Array.from({ length: ROWS }, () => new Array(COLS).fill(false))
+    const parent  = Array.from({ length: ROWS }, () => new Array(COLS).fill(null))
+    const stack   = [[startR, startC]]
+    const dirs    = [[0,1],[1,0],[0,-1],[-1,0]]
+    let found     = false
+
+    const delay = ms => new Promise(r => setTimeout(r, ms))
+
+    while (stack.length) {
+      const [r, c] = stack.pop()
+
+      if (visited[r][c]) continue
+      visited[r][c] = true
+
+      if (r === endR && c === endC) { found = true; break }
+
+      if (g[r][c] !== CELL_START && g[r][c] !== CELL_END) {
+        setGrid(prev => {
+          const ng = prev.map(row => [...row])
+          ng[r][c] = CELL_VISITED
+          return ng
+        })
+        await delay(18)
+      }
+
+      for (const [dr, dc] of dirs) {
+        const nr = r + dr, nc = c + dc
+        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue
+        if (visited[nr][nc] || g[nr][nc] === CELL_WALL) continue
+        if (g[nr][nc] === CELL_START) continue
+        if (!parent[nr][nc]) {
+          parent[nr][nc] = [r, c]
+        }
+        stack.push([nr, nc])
+      }
+    }
+
+    if (found) {
+      // Trace back path
+      let cur = [endR, endC]
+      const path = []
+      while (cur) { path.push(cur); cur = parent[cur[0]][cur[1]] }
+      path.reverse()
+      for (const [r, c] of path) {
+        if (g[r][c] !== CELL_START && g[r][c] !== CELL_END) {
+          setGrid(prev => {
+            const ng = prev.map(row => [...row])
+            ng[r][c] = CELL_PATH
+            return ng
+          })
+          await delay(30)
+        }
+      }
+    }
+    setRunning(false)
+  }
+
+  const handleRun = () => {
+    if (algorithm === 'bfs') runBFS()
+    else if (algorithm === 'dfs') runDFS()
+  }
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -119,7 +194,7 @@ export default function GridPage() {
           Pathfinding on a <span className="gradient-text">Grid</span>
         </h1>
         <p className={styles.sub}>
-          Click cells to draw walls, then hit <strong>Run BFS</strong> to watch the algorithm find the shortest path.
+          Click cells to draw walls, select an algorithm, then hit <strong>Run Algorithm</strong> to watch it search.
         </p>
       </div>
 
@@ -141,13 +216,23 @@ export default function GridPage() {
 
       {/* Controls */}
       <div className={styles.controls}>
+        <select
+          id="grid-algo-select"
+          className={styles.select}
+          value={algorithm}
+          onChange={e => setAlgorithm(e.target.value)}
+          disabled={running}
+        >
+          <option value="bfs">Breadth-First Search (BFS)</option>
+          <option value="dfs">Depth-First Search (DFS)</option>
+        </select>
         <button
           id="grid-run"
           className={`btn btn-primary`}
-          onClick={runBFS}
+          onClick={handleRun}
           disabled={running}
         >
-          <Play size={15} /> {running ? 'Running…' : 'Run BFS'}
+          <Play size={15} /> {running ? 'Running…' : `Run ${algorithm.toUpperCase()}`}
         </button>
         <button
           id="grid-reset"

@@ -54,6 +54,28 @@
   flex-wrap: wrap;
 }
 
+.select {
+  background: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--r-md, 8px);
+  font-size: 0.85rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--fast);
+}
+
+.select:focus {
+  border-color: #6366f1;
+}
+
+.select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .hint {
   display: flex;
   align-items: center;
