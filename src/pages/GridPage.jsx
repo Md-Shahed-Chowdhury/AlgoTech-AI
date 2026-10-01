@@ -863,14 +863,22 @@ export default function GridPage() {
           value={algorithm}
           onChange={e => handleAlgorithmChange(e.target.value)}
         >
-          <option value="bfs">Breadth-First Search (BFS)</option>
-          <option value="dfs">Depth-First Search (DFS)</option>
-          <option value="ucs">Uniform-Cost Search (UCS / Dijkstra)</option>
-          <option value="greedy">Greedy Best-First Search</option>
-          <option value="astar">A* Search</option>
+          <optgroup label="UNINFORMED SEARCH">
+            <option value="bfs">Breadth-First Search (BFS)</option>
+            <option value="dfs">Depth-First Search (DFS)</option>
+            <option value="ucs">Uniform-Cost Search (UCS / Dijkstra)</option>
+          </optgroup>
+          <optgroup label="INFORMED SEARCH">
+            <option value="greedy">Greedy Best-First Search</option>
+            <option value="astar">A* Search</option>
+          </optgroup>
+          <optgroup label="LOCAL SEARCH / OPTIMIZATION">
+            <option value="hillclimbing" disabled>Hill Climbing (Coming Soon)</option>
+            <option value="simulatedannealing" disabled>Simulated Annealing (Coming Soon)</option>
+          </optgroup>
         </select>
 
-        {(algorithm === 'astar' || algorithm === 'greedy') && (
+        {algorithm === 'astar' && (
           <select
             id="grid-heuristic-select"
             className={styles.select}
@@ -974,7 +982,7 @@ export default function GridPage() {
         <div className={styles.metricCard}>
           <div className={styles.metricLabel}>Evaluation Metric</div>
           <div className={styles.metricValue} style={{ fontSize: '0.9rem', color: '#f59e0b' }}>
-            {algorithm === 'astar' || algorithm === 'greedy'
+            {algorithm === 'astar'
               ? `${info.formula} [${heuristic.toUpperCase()}]`
               : info.formula}
           </div>
