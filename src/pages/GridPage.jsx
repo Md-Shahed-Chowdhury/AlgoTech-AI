@@ -1,6 +1,13 @@
-import { useState, useCallback } from 'react'
-import { Grid3x3, Play, RotateCcw, Paintbrush, Flag, MapPin, Activity, Cpu } from 'lucide-react'
+import { useState, useCallback, useRef } from 'react'
+import { Grid3x3, Play, RotateCcw, Paintbrush, Flag, MapPin, Activity, Cpu, Square, FastForward } from 'lucide-react'
 import { MinHeap } from '../features/graph/utils/MinHeap.js'
+import {
+  runGridBFS,
+  runGridDFS,
+  runGridUCS,
+  runGridGreedy,
+  runGridAStar,
+} from '../features/grid/engine/gridEngines.js'
 import styles from './GridPage.module.css'
 
 const ROWS = 16
@@ -52,13 +59,13 @@ const ALGORITHM_INFO = {
     name: 'Greedy Best-First Search',
     frontierType: 'Min-Priority Queue',
     formula: 'Priority = h(n)',
-    desc: 'Directs search toward Goal using Manhattan distance heuristic h(n).',
+    desc: 'Directs search toward Goal using distance heuristic h(n).',
   },
   astar: {
     name: 'A* Search',
     frontierType: 'Min-Priority Queue',
     formula: 'Priority = f(n) = g(n) + h(n)',
-    desc: 'Combines actual path cost g(n) and Manhattan heuristic h(n) for optimal search.',
+    desc: 'Combines actual path cost g(n) and heuristic h(n) for optimal search.',
   },
 }
 
@@ -67,7 +74,11 @@ export default function GridPage() {
   const [drawing, setDrawing] = useState(false)
   const [running, setRunning] = useState(false)
   const [algorithm, setAlgorithm] = useState('bfs')
+  const [heuristic, setHeuristic] = useState('manhattan') // 'manhattan' | 'euclidean'
   const [editTool, setEditTool] = useState('wall') // 'wall' | 'start' | 'goal'
+
+  const stopSignalRef = useRef(false)
+  const skipSignalRef = useRef(false)
 
   const [stats, setStats] = useState({
     visitedCount: 0,
@@ -91,22 +102,28 @@ export default function GridPage() {
     })
   }, [algorithm])
 
+  // Stop current running simulation mid-way
+  const stopSimulation = useCallback(() => {
+    if (running) {
+      stopSignalRef.current = true
+    }
+  }, [running])
+
   // Handle editing grid cells (Wall toggling, moving Start, moving Goal)
   const interactCell = useCallback((r, c) => {
-    if (running) return
+    if (running) stopSimulation()
+
     setGrid(prev => {
       const g = prev.map(row => [...row])
       if (editTool === 'wall') {
         if (g[r][c] === CELL_EMPTY) g[r][c] = CELL_WALL
         else if (g[r][c] === CELL_WALL) g[r][c] = CELL_EMPTY
       } else if (editTool === 'start') {
-        // Move Start Node
         for (let i = 0; i < ROWS; i++)
           for (let j = 0; j < COLS; j++)
             if (g[i][j] === CELL_START) g[i][j] = CELL_EMPTY
         g[r][c] = CELL_START
       } else if (editTool === 'goal') {
-        // Move Goal Node
         for (let i = 0; i < ROWS; i++)
           for (let j = 0; j < COLS; j++)
             if (g[i][j] === CELL_END) g[i][j] = CELL_EMPTY
@@ -115,9 +132,10 @@ export default function GridPage() {
       return g.map(row => row.map(cell => (cell === CELL_VISITED || cell === CELL_PATH ? CELL_EMPTY : cell)))
     })
     setStats(prev => ({ ...prev, visitedCount: 0, pathLength: 0, status: 'Ready' }))
-  }, [editTool, running])
+  }, [editTool, running, stopSimulation])
 
   const reset = () => {
+    stopSignalRef.current = true
     setGrid(makeGrid())
     setRunning(false)
     setStats({
@@ -129,7 +147,7 @@ export default function GridPage() {
   }
 
   const handleAlgorithmChange = (newAlgo) => {
-    if (running) return
+    if (running) stopSimulation()
     setAlgorithm(newAlgo)
     setGrid(prev =>
       prev.map(row =>
@@ -144,11 +162,99 @@ export default function GridPage() {
     })
   }
 
+  const handleHeuristicChange = (newHeuristic) => {
+    if (running) stopSimulation()
+    setHeuristic(newHeuristic)
+    setGrid(prev =>
+      prev.map(row =>
+        row.map(cell => (cell === CELL_VISITED || cell === CELL_PATH ? CELL_EMPTY : cell))
+      )
+    )
+    setStats(s => ({
+      ...s,
+      visitedCount: 0,
+      pathLength: 0,
+      status: 'Ready',
+      commentary: `Heuristic updated to ${newHeuristic.toUpperCase()}.`,
+    }))
+  }
+
+  // Instant calculation / Skip animation handler
+  const handleInstantResult = () => {
+    if (running) {
+      skipSignalRef.current = true
+      return
+    }
+
+    // Always compute on a PRISTINE grid snapshot (stripping CELL_VISITED & CELL_PATH)
+    const cleanGrid = grid.map(row =>
+      row.map(cell => (cell === CELL_VISITED || cell === CELL_PATH ? CELL_EMPTY : cell))
+    )
+
+    const engineMap = {
+      bfs: runGridBFS,
+      dfs: runGridDFS,
+      ucs: runGridUCS,
+      greedy: runGridGreedy,
+      astar: runGridAStar,
+    }
+    const engine = engineMap[algorithm] || runGridBFS
+    const res = engine(cleanGrid, null, null, heuristic)
+
+    setGrid(() => {
+      const ng = cleanGrid.map(row => [...row])
+      if (res.found) {
+        for (const [r, c] of res.visitedOrder) {
+          if (ng[r][c] !== CELL_START && ng[r][c] !== CELL_END) ng[r][c] = CELL_VISITED
+        }
+        for (const [r, c] of res.path) {
+          if (ng[r][c] !== CELL_START && ng[r][c] !== CELL_END) ng[r][c] = CELL_PATH
+        }
+      } else {
+        for (const [r, c] of res.visitedOrder) {
+          if (ng[r][c] !== CELL_START && ng[r][c] !== CELL_END) ng[r][c] = CELL_VISITED
+        }
+      }
+      return ng
+    })
+
+    // Exact count of visited intermediate cells excluding Start & Goal nodes
+    const visitedNum = res.visitedOrder.filter(
+      ([r, c]) => cleanGrid[r][c] !== CELL_START && cleanGrid[r][c] !== CELL_END
+    ).length
+    const pathSteps = res.path.length > 0 ? res.path.length - 1 : 0
+
+    setStats({
+      visitedCount: visitedNum,
+      pathLength: pathSteps,
+      status: res.found ? 'Goal Found (Instant)' : 'No Path Found',
+      commentary: res.found
+        ? `${ALGORITHM_INFO[algorithm].name} (${algorithm === 'astar' || algorithm === 'greedy' ? heuristic.toUpperCase() : 'Standard'}) completed instantly. Path length: ${pathSteps} steps. Visited cells: ${visitedNum}.`
+        : 'Target is unreachable.',
+    })
+  }
+
+  // Helper delay function respecting skip and stop signals
+  const stepDelay = (ms) => {
+    if (skipSignalRef.current) return Promise.resolve()
+    return new Promise(r => setTimeout(r, ms))
+  }
+
+  // Helper heuristic calculation
+  const getHeuristic = (r, c, endR, endC) => {
+    if (heuristic === 'euclidean') {
+      return Math.sqrt((r - endR) ** 2 + (c - endC) ** 2)
+    }
+    return Math.abs(r - endR) + Math.abs(c - endC)
+  }
+
   // --- ALGORITHM EXECUTIONS ---
 
   // 1. BFS
   const runBFS = async () => {
     setRunning(true)
+    stopSignalRef.current = false
+    skipSignalRef.current = false
     clearExecutionState()
     const g = grid.map(row => [...row])
 
@@ -167,8 +273,6 @@ export default function GridPage() {
     let found = false
     let visitedCount = 0
 
-    const delay = ms => new Promise(r => setTimeout(r, ms))
-
     setStats({
       visitedCount: 0,
       pathLength: 0,
@@ -177,6 +281,12 @@ export default function GridPage() {
     })
 
     while (queue.length) {
+      if (stopSignalRef.current) {
+        setRunning(false)
+        setStats(s => ({ ...s, status: 'Simulation Stopped', commentary: 'Simulation stopped by user.' }))
+        return
+      }
+
       const [r, c] = queue.shift()
       if (r === endR && c === endC) { found = true; break }
 
@@ -201,33 +311,35 @@ export default function GridPage() {
             visitedCount,
             commentary: `BFS expanded cell [${nr}, ${nc}]. Queue size: ${queue.length}`,
           }))
-          await delay(18)
+          await stepDelay(18)
         }
       }
     }
 
-    if (found) {
+    if (found && !stopSignalRef.current) {
       let cur = [endR, endC]
       const path = []
       while (cur) { path.push(cur); cur = parent[cur[0]][cur[1]] }
       path.reverse()
+      const pathSteps = path.length - 1
       for (const [r, c] of path) {
+        if (stopSignalRef.current) { setRunning(false); return }
         if (g[r][c] !== CELL_START && g[r][c] !== CELL_END) {
           setGrid(prev => {
             const ng = prev.map(row => [...row])
             ng[r][c] = CELL_PATH
             return ng
           })
-          await delay(30)
+          await stepDelay(30)
         }
       }
       setStats({
         visitedCount,
-        pathLength: path.length,
+        pathLength: pathSteps,
         status: 'Goal Found!',
-        commentary: `BFS found the optimal unweighted path in ${path.length} steps after visiting ${visitedCount} cells.`,
+        commentary: `BFS found optimal unweighted path in ${pathSteps} steps after visiting ${visitedCount} cells.`,
       })
-    } else {
+    } else if (!stopSignalRef.current) {
       setStats(s => ({ ...s, status: 'No Path Found', commentary: 'Target node is completely blocked by walls.' }))
     }
     setRunning(false)
@@ -236,6 +348,8 @@ export default function GridPage() {
   // 2. DFS
   const runDFS = async () => {
     setRunning(true)
+    stopSignalRef.current = false
+    skipSignalRef.current = false
     clearExecutionState()
     const g = grid.map(row => [...row])
 
@@ -253,8 +367,6 @@ export default function GridPage() {
     let found = false
     let visitedCount = 0
 
-    const delay = ms => new Promise(r => setTimeout(r, ms))
-
     setStats({
       visitedCount: 0,
       pathLength: 0,
@@ -263,6 +375,12 @@ export default function GridPage() {
     })
 
     while (stack.length) {
+      if (stopSignalRef.current) {
+        setRunning(false)
+        setStats(s => ({ ...s, status: 'Simulation Stopped', commentary: 'Simulation stopped by user.' }))
+        return
+      }
+
       const [r, c] = stack.pop()
 
       if (visited[r][c]) continue
@@ -282,7 +400,7 @@ export default function GridPage() {
           visitedCount,
           commentary: `DFS exploring branch cell [${r}, ${c}]. Stack size: ${stack.length}`,
         }))
-        await delay(18)
+        await stepDelay(18)
       }
 
       for (const [dr, dc] of dirs) {
@@ -297,28 +415,30 @@ export default function GridPage() {
       }
     }
 
-    if (found) {
+    if (found && !stopSignalRef.current) {
       let cur = [endR, endC]
       const path = []
       while (cur) { path.push(cur); cur = parent[cur[0]][cur[1]] }
       path.reverse()
+      const pathSteps = path.length - 1
       for (const [r, c] of path) {
+        if (stopSignalRef.current) { setRunning(false); return }
         if (g[r][c] !== CELL_START && g[r][c] !== CELL_END) {
           setGrid(prev => {
             const ng = prev.map(row => [...row])
             ng[r][c] = CELL_PATH
             return ng
           })
-          await delay(30)
+          await stepDelay(30)
         }
       }
       setStats({
         visitedCount,
-        pathLength: path.length,
+        pathLength: pathSteps,
         status: 'Goal Found!',
-        commentary: `DFS reached the goal in ${path.length} steps after visiting ${visitedCount} cells.`,
+        commentary: `DFS reached goal in ${pathSteps} steps after visiting ${visitedCount} cells.`,
       })
-    } else {
+    } else if (!stopSignalRef.current) {
       setStats(s => ({ ...s, status: 'No Path Found', commentary: 'Target node is completely blocked by walls.' }))
     }
     setRunning(false)
@@ -327,6 +447,8 @@ export default function GridPage() {
   // 3. UCS
   const runUCS = async () => {
     setRunning(true)
+    stopSignalRef.current = false
+    skipSignalRef.current = false
     clearExecutionState()
     const g = grid.map(row => [...row])
 
@@ -349,8 +471,6 @@ export default function GridPage() {
     let found = false
     let visitedCount = 0
 
-    const delay = ms => new Promise(r => setTimeout(r, ms))
-
     setStats({
       visitedCount: 0,
       pathLength: 0,
@@ -359,6 +479,12 @@ export default function GridPage() {
     })
 
     while (!pq.isEmpty()) {
+      if (stopSignalRef.current) {
+        setRunning(false)
+        setStats(s => ({ ...s, status: 'Simulation Stopped', commentary: 'Simulation stopped by user.' }))
+        return
+      }
+
       const top = pq.pop()
       const { r, c, gCost } = top
 
@@ -379,7 +505,7 @@ export default function GridPage() {
           visitedCount,
           commentary: `UCS expanding cell [${r}, ${c}] with g(n) = ${gCost}. Priority Queue size: ${pq.size}`,
         }))
-        await delay(18)
+        await stepDelay(18)
       }
 
       for (const [dr, dc] of dirs) {
@@ -398,28 +524,30 @@ export default function GridPage() {
       }
     }
 
-    if (found) {
+    if (found && !stopSignalRef.current) {
       let cur = [endR, endC]
       const path = []
       while (cur) { path.push(cur); cur = parent[cur[0]][cur[1]] }
       path.reverse()
+      const pathSteps = path.length - 1
       for (const [r, c] of path) {
+        if (stopSignalRef.current) { setRunning(false); return }
         if (g[r][c] !== CELL_START && g[r][c] !== CELL_END) {
           setGrid(prev => {
             const ng = prev.map(row => [...row])
             ng[r][c] = CELL_PATH
             return ng
           })
-          await delay(30)
+          await stepDelay(30)
         }
       }
       setStats({
         visitedCount,
-        pathLength: path.length,
+        pathLength: pathSteps,
         status: 'Goal Found!',
-        commentary: `UCS found optimal path with cost g = ${path.length} after visiting ${visitedCount} cells.`,
+        commentary: `UCS found optimal path with cost g = ${pathSteps} after visiting ${visitedCount} cells.`,
       })
-    } else {
+    } else if (!stopSignalRef.current) {
       setStats(s => ({ ...s, status: 'No Path Found', commentary: 'Target node is completely blocked by walls.' }))
     }
     setRunning(false)
@@ -428,6 +556,8 @@ export default function GridPage() {
   // 4. Greedy Best-First
   const runGreedy = async () => {
     setRunning(true)
+    stopSignalRef.current = false
+    skipSignalRef.current = false
     clearExecutionState()
     const g = grid.map(row => [...row])
 
@@ -438,29 +568,31 @@ export default function GridPage() {
         if (g[r][c] === CELL_END)   { endR   = r; endC   = c }
       }
 
-    const getHeuristic = (r, c) => Math.abs(r - endR) + Math.abs(c - endC)
-
     const visited = Array.from({ length: ROWS }, () => new Array(COLS).fill(false))
     const parent  = Array.from({ length: ROWS }, () => new Array(COLS).fill(null))
 
     const pq = new MinHeap()
-    const startH = getHeuristic(startR, startC)
+    const startH = getHeuristic(startR, startC, endR, endC)
     pq.push({ id: `${startR},${startC}`, priority: startH, r: startR, c: startC, hCost: startH })
 
     const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]]
     let found = false
     let visitedCount = 0
 
-    const delay = ms => new Promise(r => setTimeout(r, ms))
-
     setStats({
       visitedCount: 0,
       pathLength: 0,
       status: 'Running Greedy Best-First...',
-      commentary: 'Greedy: Priority Queue extracting node with minimum Manhattan heuristic h(n).',
+      commentary: `Greedy: Priority Queue extracting node with minimum ${heuristic.toUpperCase()} heuristic h(n).`,
     })
 
     while (!pq.isEmpty()) {
+      if (stopSignalRef.current) {
+        setRunning(false)
+        setStats(s => ({ ...s, status: 'Simulation Stopped', commentary: 'Simulation stopped by user.' }))
+        return
+      }
+
       const top = pq.pop()
       const { r, c, hCost } = top
 
@@ -476,12 +608,13 @@ export default function GridPage() {
           ng[r][c] = CELL_VISITED
           return ng
         })
+        const formattedH = Number(hCost).toFixed(2).replace(/\.00$/, '')
         setStats(s => ({
           ...s,
           visitedCount,
-          commentary: `Greedy expanding cell [${r}, ${c}] with h(n) = ${hCost}. Priority Queue size: ${pq.size}`,
+          commentary: `Greedy expanding cell [${r}, ${c}] with h(n) = ${formattedH}. Priority Queue size: ${pq.size}`,
         }))
-        await delay(18)
+        await stepDelay(18)
       }
 
       for (const [dr, dc] of dirs) {
@@ -492,33 +625,35 @@ export default function GridPage() {
         if (!parent[nr][nc]) {
           parent[nr][nc] = [r, c]
         }
-        const hVal = getHeuristic(nr, nc)
+        const hVal = getHeuristic(nr, nc, endR, endC)
         pq.push({ id: `${nr},${nc}`, priority: hVal, r: nr, c: nc, hCost: hVal })
       }
     }
 
-    if (found) {
+    if (found && !stopSignalRef.current) {
       let cur = [endR, endC]
       const path = []
       while (cur) { path.push(cur); cur = parent[cur[0]][cur[1]] }
       path.reverse()
+      const pathSteps = path.length - 1
       for (const [r, c] of path) {
+        if (stopSignalRef.current) { setRunning(false); return }
         if (g[r][c] !== CELL_START && g[r][c] !== CELL_END) {
           setGrid(prev => {
             const ng = prev.map(row => [...row])
             ng[r][c] = CELL_PATH
             return ng
           })
-          await delay(30)
+          await stepDelay(30)
         }
       }
       setStats({
         visitedCount,
-        pathLength: path.length,
+        pathLength: pathSteps,
         status: 'Goal Found!',
-        commentary: `Greedy Search reached the goal in ${path.length} steps after visiting ${visitedCount} cells.`,
+        commentary: `Greedy Search (${heuristic.toUpperCase()}) reached goal in ${pathSteps} steps after visiting ${visitedCount} cells.`,
       })
-    } else {
+    } else if (!stopSignalRef.current) {
       setStats(s => ({ ...s, status: 'No Path Found', commentary: 'Target node is completely blocked by walls.' }))
     }
     setRunning(false)
@@ -527,6 +662,8 @@ export default function GridPage() {
   // 5. A*
   const runAStar = async () => {
     setRunning(true)
+    stopSignalRef.current = false
+    skipSignalRef.current = false
     clearExecutionState()
     const g = grid.map(row => [...row])
 
@@ -537,14 +674,12 @@ export default function GridPage() {
         if (g[r][c] === CELL_END)   { endR   = r; endC   = c }
       }
 
-    const getHeuristic = (r, c) => Math.abs(r - endR) + Math.abs(c - endC)
-
     const gScore  = Array.from({ length: ROWS }, () => new Array(COLS).fill(Infinity))
     const visited = Array.from({ length: ROWS }, () => new Array(COLS).fill(false))
     const parent  = Array.from({ length: ROWS }, () => new Array(COLS).fill(null))
 
     const pq = new MinHeap()
-    const startH = getHeuristic(startR, startC)
+    const startH = getHeuristic(startR, startC, endR, endC)
     gScore[startR][startC] = 0
 
     pq.push({
@@ -561,16 +696,20 @@ export default function GridPage() {
     let found = false
     let visitedCount = 0
 
-    const delay = ms => new Promise(r => setTimeout(r, ms))
-
     setStats({
       visitedCount: 0,
       pathLength: 0,
       status: 'Running A* Search...',
-      commentary: 'A*: Priority Queue extracting node with minimum total estimated cost f(n) = g(n) + h(n).',
+      commentary: `A*: Priority Queue extracting node with min f(n) = g(n) + h(n) [${heuristic.toUpperCase()}].`,
     })
 
     while (!pq.isEmpty()) {
+      if (stopSignalRef.current) {
+        setRunning(false)
+        setStats(s => ({ ...s, status: 'Simulation Stopped', commentary: 'Simulation stopped by user.' }))
+        return
+      }
+
       const top = pq.pop()
       const { r, c, gCost, hCost, fCost } = top
 
@@ -586,12 +725,14 @@ export default function GridPage() {
           ng[r][c] = CELL_VISITED
           return ng
         })
+        const formattedF = Number(fCost).toFixed(2).replace(/\.00$/, '')
+        const formattedH = Number(hCost).toFixed(2).replace(/\.00$/, '')
         setStats(s => ({
           ...s,
           visitedCount,
-          commentary: `A* expanding cell [${r}, ${c}] with f(n)=${fCost} (g=${gCost}, h=${hCost}). PQ size: ${pq.size}`,
+          commentary: `A* expanding cell [${r}, ${c}] with f(n)=${formattedF} (g=${gCost}, h=${formattedH}). PQ size: ${pq.size}`,
         }))
-        await delay(18)
+        await stepDelay(18)
       }
 
       for (const [dr, dc] of dirs) {
@@ -605,7 +746,7 @@ export default function GridPage() {
         if (newGCost < gScore[nr][nc]) {
           gScore[nr][nc] = newGCost
           parent[nr][nc] = [r, c]
-          const hVal = getHeuristic(nr, nc)
+          const hVal = getHeuristic(nr, nc, endR, endC)
           const fVal = newGCost + hVal
           pq.push({
             id: `${nr},${nc}`,
@@ -620,28 +761,30 @@ export default function GridPage() {
       }
     }
 
-    if (found) {
+    if (found && !stopSignalRef.current) {
       let cur = [endR, endC]
       const path = []
       while (cur) { path.push(cur); cur = parent[cur[0]][cur[1]] }
       path.reverse()
+      const pathSteps = path.length - 1
       for (const [r, c] of path) {
+        if (stopSignalRef.current) { setRunning(false); return }
         if (g[r][c] !== CELL_START && g[r][c] !== CELL_END) {
           setGrid(prev => {
             const ng = prev.map(row => [...row])
             ng[r][c] = CELL_PATH
             return ng
           })
-          await delay(30)
+          await stepDelay(30)
         }
       }
       setStats({
         visitedCount,
-        pathLength: path.length,
+        pathLength: pathSteps,
         status: 'Goal Found!',
-        commentary: `A* found optimal path in ${path.length} steps after visiting ${visitedCount} cells.`,
+        commentary: `A* (${heuristic.toUpperCase()}) found optimal path in ${pathSteps} steps after visiting ${visitedCount} cells.`,
       })
-    } else {
+    } else if (!stopSignalRef.current) {
       setStats(s => ({ ...s, status: 'No Path Found', commentary: 'Target node is completely blocked by walls.' }))
     }
     setRunning(false)
@@ -667,7 +810,7 @@ export default function GridPage() {
           Pathfinding on a <span className="gradient-text">Grid</span>
         </h1>
         <p className={styles.sub}>
-          Click cells to draw walls, place Start/Goal nodes, select an algorithm, and run pathfinding.
+          Click cells to draw walls, place Start/Goal nodes, select an algorithm & heuristic, and run pathfinding.
         </p>
       </div>
 
@@ -695,21 +838,18 @@ export default function GridPage() {
         <button
           className={`${styles.toolBtn} ${editTool === 'wall' ? styles.toolBtnActive : ''}`}
           onClick={() => setEditTool('wall')}
-          disabled={running}
         >
           <Paintbrush size={14} /> Toggle Wall
         </button>
         <button
           className={`${styles.toolBtn} ${editTool === 'start' ? styles.toolBtnActive : ''}`}
           onClick={() => setEditTool('start')}
-          disabled={running}
         >
           <MapPin size={14} style={{ color: '#10b981' }} /> Move Start
         </button>
         <button
           className={`${styles.toolBtn} ${editTool === 'goal' ? styles.toolBtnActive : ''}`}
           onClick={() => setEditTool('goal')}
-          disabled={running}
         >
           <Flag size={14} style={{ color: '#f43f5e' }} /> Move Goal
         </button>
@@ -722,7 +862,6 @@ export default function GridPage() {
           className={styles.select}
           value={algorithm}
           onChange={e => handleAlgorithmChange(e.target.value)}
-          disabled={running}
         >
           <option value="bfs">Breadth-First Search (BFS)</option>
           <option value="dfs">Depth-First Search (DFS)</option>
@@ -730,19 +869,63 @@ export default function GridPage() {
           <option value="greedy">Greedy Best-First Search</option>
           <option value="astar">A* Search</option>
         </select>
-        <button
-          id="grid-run"
-          className={`btn btn-primary`}
-          onClick={handleRun}
-          disabled={running}
-        >
-          <Play size={15} /> {running ? 'Running…' : `Run ${algorithm.toUpperCase()}`}
-        </button>
+
+        {(algorithm === 'astar' || algorithm === 'greedy') && (
+          <select
+            id="grid-heuristic-select"
+            className={styles.select}
+            value={heuristic}
+            onChange={e => handleHeuristicChange(e.target.value)}
+            title="Select heuristic distance calculation formula"
+          >
+            <option value="manhattan">Heuristic: Manhattan</option>
+            <option value="euclidean">Heuristic: Euclidean</option>
+          </select>
+        )}
+
+        {!running ? (
+          <>
+            <button
+              id="grid-run"
+              className={`btn btn-primary`}
+              onClick={handleRun}
+            >
+              <Play size={15} /> Run {algorithm.toUpperCase()}
+            </button>
+            <button
+              id="grid-skip"
+              className={`btn btn-secondary`}
+              onClick={handleInstantResult}
+              title="Calculate result instantly without animation delay"
+            >
+              <FastForward size={15} /> Instant Result
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              id="grid-stop"
+              className={`btn btn-ghost`}
+              style={{ border: '1px solid #f43f5e', color: '#f43f5e', background: 'rgba(244,63,94,0.1)' }}
+              onClick={stopSimulation}
+            >
+              <Square size={15} /> Stop
+            </button>
+            <button
+              id="grid-skip-running"
+              className={`btn btn-secondary`}
+              onClick={handleInstantResult}
+              title="Fast-forward current simulation to instant result"
+            >
+              <FastForward size={15} /> Skip to Result
+            </button>
+          </>
+        )}
+
         <button
           id="grid-reset"
           className={`btn btn-ghost`}
           onClick={reset}
-          disabled={running}
         >
           <RotateCcw size={15} /> Reset
         </button>
@@ -762,8 +945,8 @@ export default function GridPage() {
               <div
                 key={`${r}-${c}`}
                 className={`${styles.cell} ${CELL_CLASS[cell]}`}
-                onMouseDown={() => { if (!running) { setDrawing(true); interactCell(r, c) } }}
-                onMouseEnter={() => { if (drawing && !running) interactCell(r, c) }}
+                onMouseDown={() => { setDrawing(true); interactCell(r, c) }}
+                onMouseEnter={() => { if (drawing) interactCell(r, c) }}
                 onMouseUp={() => setDrawing(false)}
               />
             ))
@@ -791,7 +974,9 @@ export default function GridPage() {
         <div className={styles.metricCard}>
           <div className={styles.metricLabel}>Evaluation Metric</div>
           <div className={styles.metricValue} style={{ fontSize: '0.9rem', color: '#f59e0b' }}>
-            {info.formula}
+            {algorithm === 'astar' || algorithm === 'greedy'
+              ? `${info.formula} [${heuristic.toUpperCase()}]`
+              : info.formula}
           </div>
         </div>
 
