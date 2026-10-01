@@ -102,6 +102,8 @@ export default function GridPage() {
   const [editTool, setEditTool] = useState('wall') // 'wall' | 'start' | 'goal'
   const [saInitialTemp, setSaInitialTemp] = useState(100)
   const [saCoolingRate, setSaCoolingRate] = useState(0.95)
+  const [saMinTemp, setSaMinTemp] = useState(0.1)
+  const [saMaxIterations, setSaMaxIterations] = useState(200)
 
   const stopSignalRef = useRef(false)
   const skipSignalRef = useRef(false)
@@ -128,6 +130,7 @@ export default function GridPage() {
     acceptanceProb: null,
     randomVal: null,
     annealingDecision: null,
+    iteration: null,
   })
 
   const [stats, setStats] = useState(() => ({
@@ -235,8 +238,8 @@ export default function GridPage() {
       const res = runGridSimulatedAnnealing(cleanGrid, null, null, heuristic, {
         initialTemp: saInitialTemp,
         coolingRate: saCoolingRate,
-        minTemp: 0.1,
-        maxIterations: 200,
+        minTemp: saMinTemp,
+        maxIterations: saMaxIterations,
       })
 
       setGrid(() => {
@@ -288,6 +291,7 @@ export default function GridPage() {
         acceptanceProb: lastStep && lastStep.acceptanceProb !== undefined && lastStep.acceptanceProb !== null ? (typeof lastStep.acceptanceProb === 'number' ? Number(lastStep.acceptanceProb).toFixed(3) : lastStep.acceptanceProb) : null,
         randomVal: lastStep && lastStep.randomVal !== undefined && lastStep.randomVal !== null ? Number(lastStep.randomVal).toFixed(3) : null,
         annealingDecision: res.found ? 'Goal Reached' : (res.terminationReason || 'Terminated'),
+        iteration: lastStep ? lastStep.iteration : null,
       })
       return
     }
@@ -1131,8 +1135,8 @@ export default function GridPage() {
     const res = runGridSimulatedAnnealing(cleanGrid, null, null, heuristic, {
       initialTemp: saInitialTemp,
       coolingRate: saCoolingRate,
-      minTemp: 0.1,
-      maxIterations: 200,
+      minTemp: saMinTemp,
+      maxIterations: saMaxIterations,
     })
 
     setStats({
@@ -1194,6 +1198,7 @@ export default function GridPage() {
         acceptanceProb: formattedProb,
         randomVal: formattedRand,
         annealingDecision: decisionText,
+        iteration: step.iteration,
       })
 
       await stepDelay(120)
@@ -1355,6 +1360,28 @@ export default function GridPage() {
               <option value={0.90}>Cooling Rate α: 0.90</option>
               <option value={0.95}>Cooling Rate α: 0.95 (Default)</option>
               <option value={0.98}>Cooling Rate α: 0.98 (Slow)</option>
+            </select>
+            <select
+              id="grid-sa-mintemp-select"
+              className={styles.select}
+              value={saMinTemp}
+              onChange={e => setSaMinTemp(Number(e.target.value))}
+              title="Select Minimum Temperature"
+            >
+              <option value={0.01}>Min Temp: 0.01</option>
+              <option value={0.1}>Min Temp: 0.1 (Default)</option>
+              <option value={1.0}>Min Temp: 1.0</option>
+            </select>
+            <select
+              id="grid-sa-maxiter-select"
+              className={styles.select}
+              value={saMaxIterations}
+              onChange={e => setSaMaxIterations(Number(e.target.value))}
+              title="Select Maximum Iterations"
+            >
+              <option value={100}>Max Iterations: 100</option>
+              <option value={200}>Max Iterations: 200 (Default)</option>
+              <option value={500}>Max Iterations: 500</option>
             </select>
           </>
         )}
@@ -1701,6 +1728,12 @@ export default function GridPage() {
               <div className={styles.metricLabel}>Decision Status</div>
               <div className={styles.metricValue} style={{ fontSize: '0.85rem' }}>
                 {stats.annealingDecision || 'Not Started'}
+              </div>
+            </div>
+            <div className={styles.metricCard}>
+              <div className={styles.metricLabel}>Iteration</div>
+              <div className={styles.metricValue}>
+                {stats.iteration !== null && stats.iteration !== undefined ? stats.iteration : '—'}
               </div>
             </div>
           </>
