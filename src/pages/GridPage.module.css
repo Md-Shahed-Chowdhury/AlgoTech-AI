@@ -114,7 +114,7 @@
 .cell:hover { transform: scale(0.85); }
 
 .empty   { background: var(--bg-elevated); }
-.wall    { background: #1e2a3a; border: 1px solid rgba(99,102,241,0.15); }
+.wall    { background: #475569; border: 1px solid #94a3b8; box-shadow: 0 0 6px rgba(148,163,184,0.4); }
 
 /* Use CSS custom property in gradient for animation */
 .start {
@@ -141,3 +141,80 @@
   from { transform: scale(0.6); opacity: 0; }
   to   { transform: scale(1);   opacity: 1; }
 }
+
+/* Tools Row & Mode Selector */
+.toolsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.toolBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--r-md, 6px);
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all var(--fast);
+}
+
+.toolBtn:hover {
+  border-color: #6366f1;
+  color: var(--text-main);
+}
+
+.toolBtnActive {
+  background: rgba(99,102,241,0.18);
+  border-color: #6366f1;
+  color: #818cf8;
+}
+
+/* Metrics Dashboard */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.metricCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md, 8px);
+  padding: 0.75rem 1rem;
+}
+
+.metricLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.metricValue {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.commentaryBox {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-sub);
+  border-radius: var(--r-md, 8px);
+  font-size: 0.83rem;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
