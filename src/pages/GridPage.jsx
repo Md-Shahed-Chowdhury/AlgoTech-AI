@@ -1,35 +1,36 @@
 import { useState, useCallback } from 'react'
 import { Grid3x3, Play, RotateCcw, Paintbrush } from 'lucide-react'
+import { MinHeap } from '../features/graph/utils/MinHeap.js'
 import styles from './GridPage.module.css'
 
 const ROWS = 16
 const COLS = 30
 
-const CELL_EMPTY   = 0
-const CELL_WALL    = 1
-const CELL_START   = 2
-const CELL_END     = 3
+const CELL_EMPTY = 0
+const CELL_WALL = 1
+const CELL_START = 2
+const CELL_END = 3
 const CELL_VISITED = 4
-const CELL_PATH    = 5
+const CELL_PATH = 5
 
 function makeGrid() {
   const g = Array.from({ length: ROWS }, () => new Array(COLS).fill(CELL_EMPTY))
-  g[4][4]            = CELL_START
-  g[ROWS-5][COLS-5]  = CELL_END
+  g[4][4] = CELL_START
+  g[ROWS - 5][COLS - 5] = CELL_END
   return g
 }
 
 const CELL_CLASS = {
-  [CELL_EMPTY]:   styles.empty,
-  [CELL_WALL]:    styles.wall,
-  [CELL_START]:   styles.start,
-  [CELL_END]:     styles.end,
+  [CELL_EMPTY]: styles.empty,
+  [CELL_WALL]: styles.wall,
+  [CELL_START]: styles.start,
+  [CELL_END]: styles.end,
   [CELL_VISITED]: styles.visited,
-  [CELL_PATH]:    styles.path,
+  [CELL_PATH]: styles.path,
 }
 
 export default function GridPage() {
-  const [grid, setGrid]       = useState(makeGrid)
+  const [grid, setGrid] = useState(makeGrid)
   const [drawing, setDrawing] = useState(false)
   const [running, setRunning] = useState(false)
   const [algorithm, setAlgorithm] = useState('bfs')
@@ -37,7 +38,7 @@ export default function GridPage() {
   const toggleCell = useCallback((r, c) => {
     setGrid(prev => {
       const g = prev.map(row => [...row])
-      if (g[r][c] === CELL_EMPTY)  g[r][c] = CELL_WALL
+      if (g[r][c] === CELL_EMPTY) g[r][c] = CELL_WALL
       else if (g[r][c] === CELL_WALL) g[r][c] = CELL_EMPTY
       return g
     })
@@ -54,14 +55,14 @@ export default function GridPage() {
     for (let r = 0; r < ROWS; r++)
       for (let c = 0; c < COLS; c++) {
         if (g[r][c] === CELL_START) { startR = r; startC = c }
-        if (g[r][c] === CELL_END)   { endR   = r; endC   = c }
+        if (g[r][c] === CELL_END) { endR = r; endC = c }
       }
 
     const visited = Array.from({ length: ROWS }, () => new Array(COLS).fill(false))
-    const parent  = Array.from({ length: ROWS }, () => new Array(COLS).fill(null))
-    const queue   = [[startR, startC]]
+    const parent = Array.from({ length: ROWS }, () => new Array(COLS).fill(null))
+    const queue = [[startR, startC]]
     visited[startR][startC] = true
-    const dirs = [[0,1],[1,0],[0,-1],[-1,0]]
+    const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]]
     let found = false
 
     const delay = ms => new Promise(r => setTimeout(r, ms))
@@ -76,7 +77,7 @@ export default function GridPage() {
         if (visited[nr][nc] || g[nr][nc] === CELL_WALL) continue
         if (g[nr][nc] === CELL_START) continue
         visited[nr][nc] = true
-        parent[nr][nc]  = [r, c]
+        parent[nr][nc] = [r, c]
         queue.push([nr, nc])
 
         if (g[nr][nc] !== CELL_END) {
@@ -119,14 +120,14 @@ export default function GridPage() {
     for (let r = 0; r < ROWS; r++)
       for (let c = 0; c < COLS; c++) {
         if (g[r][c] === CELL_START) { startR = r; startC = c }
-        if (g[r][c] === CELL_END)   { endR   = r; endC   = c }
+        if (g[r][c] === CELL_END) { endR = r; endC = c }
       }
 
     const visited = Array.from({ length: ROWS }, () => new Array(COLS).fill(false))
-    const parent  = Array.from({ length: ROWS }, () => new Array(COLS).fill(null))
-    const stack   = [[startR, startC]]
-    const dirs    = [[0,1],[1,0],[0,-1],[-1,0]]
-    let found     = false
+    const parent = Array.from({ length: ROWS }, () => new Array(COLS).fill(null))
+    const stack = [[startR, startC]]
+    const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]]
+    let found = false
 
     const delay = ms => new Promise(r => setTimeout(r, ms))
 
@@ -179,9 +180,89 @@ export default function GridPage() {
     setRunning(false)
   }
 
+  // Min-Heap Uniform-Cost Search (UCS / Dijkstra) visualizer
+  const runUCS = async () => {
+    setRunning(true)
+    const g = grid.map(row => [...row])
+
+    let startR, startC, endR, endC
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++) {
+        if (g[r][c] === CELL_START) { startR = r; startC = c }
+        if (g[r][c] === CELL_END) { endR = r; endC = c }
+      }
+
+    const gScore = Array.from({ length: ROWS }, () => new Array(COLS).fill(Infinity))
+    const visited = Array.from({ length: ROWS }, () => new Array(COLS).fill(false))
+    const parent = Array.from({ length: ROWS }, () => new Array(COLS).fill(null))
+
+    const pq = new MinHeap()
+    gScore[startR][startC] = 0
+    pq.push({ id: `${startR},${startC}`, priority: 0, r: startR, c: startC, gCost: 0 })
+
+    const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]]
+    let found = false
+
+    const delay = ms => new Promise(r => setTimeout(r, ms))
+
+    while (!pq.isEmpty()) {
+      const top = pq.pop()
+      const { r, c, gCost } = top
+
+      if (visited[r][c]) continue
+      visited[r][c] = true
+
+      if (r === endR && c === endC) { found = true; break }
+
+      if (g[r][c] !== CELL_START && g[r][c] !== CELL_END) {
+        setGrid(prev => {
+          const ng = prev.map(row => [...row])
+          ng[r][c] = CELL_VISITED
+          return ng
+        })
+        await delay(18)
+      }
+
+      for (const [dr, dc] of dirs) {
+        const nr = r + dr, nc = c + dc
+        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue
+        if (g[nr][nc] === CELL_WALL || g[nr][nc] === CELL_START) continue
+
+        const movementCost = 1
+        const newCost = gCost + movementCost
+
+        if (newCost < gScore[nr][nc]) {
+          gScore[nr][nc] = newCost
+          parent[nr][nc] = [r, c]
+          pq.push({ id: `${nr},${nc}`, priority: newCost, r: nr, c: nc, gCost: newCost })
+        }
+      }
+    }
+
+    if (found) {
+      // Trace back path
+      let cur = [endR, endC]
+      const path = []
+      while (cur) { path.push(cur); cur = parent[cur[0]][cur[1]] }
+      path.reverse()
+      for (const [r, c] of path) {
+        if (g[r][c] !== CELL_START && g[r][c] !== CELL_END) {
+          setGrid(prev => {
+            const ng = prev.map(row => [...row])
+            ng[r][c] = CELL_PATH
+            return ng
+          })
+          await delay(30)
+        }
+      }
+    }
+    setRunning(false)
+  }
+
   const handleRun = () => {
     if (algorithm === 'bfs') runBFS()
     else if (algorithm === 'dfs') runDFS()
+    else if (algorithm === 'ucs') runUCS()
   }
 
   return (
@@ -201,11 +282,11 @@ export default function GridPage() {
       {/* Legend */}
       <div className={styles.legend}>
         {[
-          { cls: styles.start,   label: 'Start' },
-          { cls: styles.end,     label: 'End' },
-          { cls: styles.wall,    label: 'Wall' },
+          { cls: styles.start, label: 'Start' },
+          { cls: styles.end, label: 'End' },
+          { cls: styles.wall, label: 'Wall' },
           { cls: styles.visited, label: 'Visited' },
-          { cls: styles.path,    label: 'Path' },
+          { cls: styles.path, label: 'Path' },
         ].map(({ cls, label }) => (
           <span key={label} className={styles.legendItem}>
             <span className={`${styles.legendDot} ${cls}`} />
@@ -225,6 +306,7 @@ export default function GridPage() {
         >
           <option value="bfs">Breadth-First Search (BFS)</option>
           <option value="dfs">Depth-First Search (DFS)</option>
+          <option value="ucs">Uniform-Cost Search (UCS / Dijkstra)</option>
         </select>
         <button
           id="grid-run"
