@@ -286,6 +286,15 @@ export const COMPARISON_PRESETS = [
     ),
   },
   {
+    id: 'local-minimum',
+    name: 'Local Minimum Trap',
+    description: 'X has the lowest h near the start but every neighbor of X looks worse. Hill Climbing gets stuck there; Simulated Annealing can climb out.',
+    create: () => buildPreset('S', 'G',
+      [['S', 90, 250, 6], ['X', 250, 100, 2], ['V', 430, 70, 4], ['Y', 250, 400, 5], ['Z', 430, 330, 3], ['W', 560, 230, 1], ['G', 660, 110, 0]],
+      [['S', 'X', 2], ['X', 'V', 3], ['V', 'Z', 4], ['S', 'Y', 2], ['Y', 'Z', 2], ['Z', 'W', 2], ['W', 'G', 2]],
+    ),
+  },
+  {
     id: 'lattice',
     name: 'Weighted Lattice',
     description: 'A 4×3 grid with mixed weights — larger search space, so expansion counts diverge more.',

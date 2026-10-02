@@ -6,13 +6,15 @@
  */
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Flag, XCircle, Loader2 } from 'lucide-react'
+import { Flag, XCircle, Loader2, Mountain, Thermometer } from 'lucide-react'
 import GraphCanvas from '../../../graph/components/GraphCanvas/GraphCanvas.jsx'
 import { useCompareStore, stepFor, isFinishedAt } from '../../store/useCompareStore.js'
 import { ALGO_BY_ID } from '../../constants.js'
+import { LOCAL_SEARCH } from '../../engine/runAny.js'
+import { getNodeHeuristic } from '../../../graph/utils/graphUtils.js'
 import styles from './SplitView.module.css'
 
-const ORDINAL = ['', '1st', '2nd', '3rd', '4th', '5th']
+const ORDINAL = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th']
 
 export default function SplitView({ graph, viewBox }) {
   const comparison = useCompareStore(s => s.comparison)
@@ -67,8 +69,19 @@ function RacePanel({ result, stepIndex, graph, viewBox }) {
       </div>
 
       <div className={styles.stats}>
-        <Stat label="Expanded" value={step?.metrics?.nodesExpanded ?? 0} />
-        <Stat label="Frontier" value={step?.metrics?.frontierSize ?? 0} />
+        {result.isLocal ? (
+          <>
+            <Stat label="Iterations" value={step?.metrics?.nodesExpanded ?? 0} />
+            {result.id === LOCAL_SEARCH.ANNEALING
+              ? <Stat label="Temp T" value={step?.algorithmSpecificState?.temperature ?? '—'} />
+              : <Stat label="h(current)" value={step?.currentNode ? getNodeHeuristic(step.currentNode, graph) : '—'} />}
+          </>
+        ) : (
+          <>
+            <Stat label="Expanded" value={step?.metrics?.nodesExpanded ?? 0} />
+            <Stat label="Frontier" value={step?.metrics?.frontierSize ?? 0} />
+          </>
+        )}
         <Stat label="Step" value={`${shownIndex}/${result.totalSteps - 1}`} />
         <Stat label="Path cost" value={finished && result.pathFound ? result.realCost : '—'} highlight={finished && result.pathFound} />
       </div>
@@ -112,7 +125,13 @@ function StatusBadge({ result, finished }) {
         </motion.span>
       ) : (
         <motion.span key="fail" className={`${styles.badge} ${styles.badgeFail}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <XCircle size={12} /> No path
+          {result.endReason === 'LOCAL_MINIMUM' ? (
+            <><Mountain size={12} /> Stuck at {result.stuckAt}</>
+          ) : result.endReason === 'FROZEN' ? (
+            <><Thermometer size={12} /> Frozen at {result.stuckAt}</>
+          ) : (
+            <><XCircle size={12} /> No path</>
+          )}
         </motion.span>
       )}
     </AnimatePresence>

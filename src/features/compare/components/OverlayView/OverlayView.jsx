@@ -151,11 +151,11 @@ export default function OverlayView({ graph, viewBox }) {
               <span className={styles.legendName}>{algo.shortName}</span>
               <span className={styles.legendStatus}>
                 {!finished ? (
-                  <><Loader2 size={11} className={styles.spin} /> {stepFor(r, stepIndex)?.metrics?.nodesExpanded ?? 0} expanded</>
+                  <><Loader2 size={11} className={styles.spin} /> {stepFor(r, stepIndex)?.metrics?.nodesExpanded ?? 0} {r.isLocal ? 'iterations' : 'expanded'}</>
                 ) : r.pathFound ? (
-                  <><Flag size={11} /> #{r.finishRank} · cost {r.realCost}</>
+                  <><Flag size={11} /> #{r.finishRank} · cost {r.realCost}{r.isLocal && r.walkedCost > r.realCost ? ` · walked ${r.walkedCost}` : ''}</>
                 ) : (
-                  <><XCircle size={11} /> no path</>
+                  <><XCircle size={11} /> {r.stuckAt ? `${r.endReason === 'FROZEN' ? 'frozen' : 'stuck'} at ${r.stuckAt}` : 'no path'}</>
                 )}
               </span>
             </button>

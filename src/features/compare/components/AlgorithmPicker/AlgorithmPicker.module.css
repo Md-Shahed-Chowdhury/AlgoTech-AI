@@ -37,6 +37,18 @@
 }
 .allBtn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
 
+.group { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.groupHead { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+
+.groupLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+.groupHint { font-size: 0.68rem; color: var(--text-muted); }
+
 .chips {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

@@ -9,6 +9,7 @@ import { LayoutGrid, Layers, Pencil, Play, RotateCcw, ChevronDown } from 'lucide
 import { COMPARISON_PRESETS } from '../../../graph/utils/graphUtils.js'
 import { useCompareStore, MIN_SELECTED } from '../../store/useCompareStore.js'
 import { VIEW_MODE } from '../../constants.js'
+import LocalSearchSettings from '../LocalSearchSettings/LocalSearchSettings.jsx'
 import styles from './CompareToolbar.module.css'
 
 const VIEWS = [
@@ -47,6 +48,8 @@ export default function CompareToolbar({ presetId, onPresetChange, onEditGraph, 
         <button id="compare-edit-graph" className="btn btn-ghost" onClick={onEditGraph}>
           <Pencil size={14} /> Edit Graph
         </button>
+
+        <LocalSearchSettings />
 
         <div className={styles.segment} role="tablist" aria-label="View mode">
           {VIEWS.map(({ id, label, icon: Icon }) => (

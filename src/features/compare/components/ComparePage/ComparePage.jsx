@@ -22,6 +22,7 @@ import { COMPARISON_PRESETS } from '../../../graph/utils/graphUtils.js'
 import { useCompareStore } from '../../store/useCompareStore.js'
 import { ALGO_ORDER, ALGO_BY_ID, VIEW_MODE } from '../../constants.js'
 import { fitViewBox } from '../../layout.js'
+import { LOCAL_SEARCH } from '../../engine/runAny.js'
 
 import AlgorithmPicker from '../AlgorithmPicker/AlgorithmPicker.jsx'
 import CompareToolbar from '../CompareToolbar/CompareToolbar.jsx'
@@ -64,13 +65,16 @@ export default function ComparePage() {
   const viewMode = useCompareStore(s => s.viewMode)
   const errors = useCompareStore(s => s.errors)
   const revealed = useCompareStore(s => s.revealed)
-  const { run, setSelected, clearResults, revealResults, pause, togglePlay, stepForward, stepBackward } = useCompareStore.getState()
+  const seed = useCompareStore(s => s.localSearch.seed)
+  const { run, setSelected, setLocalSearch, clearResults, revealResults, pause, togglePlay, stepForward, stepBackward } = useCompareStore.getState()
 
   // ── Mount: read URL → selection + graph; clean up the timer on leave ──────
   useEffect(() => {
     clearResults()
     const fromUrl = (searchParams.get('algos') ?? '').split(',').filter(id => ALGO_ORDER.includes(id))
     if (fromUrl.length > 0) setSelected(fromUrl)
+    const seedFromUrl = Number(searchParams.get('seed'))
+    if (Number.isInteger(seedFromUrl) && seedFromUrl > 0) setLocalSearch({ seed: seedFromUrl })
     const preset = COMPARISON_PRESETS.find(p => p.id === presetId) ?? COMPARISON_PRESETS[0]
     loadGraph(preset.create())
     return () => pause()
@@ -81,8 +85,10 @@ export default function ComparePage() {
   useEffect(() => {
     const params = { algos: selected.join(',') }
     if (presetId !== 'custom') params.preset = presetId
+    // Seed only matters (and only appears) when annealing is racing
+    if (selected.includes(LOCAL_SEARCH.ANNEALING)) params.seed = String(seed)
     setSearchParams(params, { replace: true })
-  }, [selected, presetId, setSearchParams])
+  }, [selected, presetId, seed, setSearchParams])
 
   // ── Keyboard: Space play/pause, ←/→ step ─────────────────────────────────
   useEffect(() => {
@@ -137,7 +143,7 @@ export default function ComparePage() {
           Compare <span className="gradient-text">Algorithms</span>
         </h1>
         <p className={styles.sub}>
-          Race up to five search algorithms on the same graph and compare execution time,
+          Race up to seven search algorithms on the same graph and compare execution time,
           solution quality, efficiency and convergence side by side.
         </p>
       </div>

@@ -12,7 +12,7 @@
 
 .table th,
 .table td {
-  padding: 0.6rem 0.85rem;
+  padding: 0.6rem 0.7rem;
   text-align: left;
   border-bottom: 1px solid var(--border-sub);
   white-space: nowrap;
@@ -33,7 +33,7 @@
 .metricCol {
   font-weight: 600;
   color: var(--text-2);
-  min-width: 190px;
+  min-width: 170px;
 }
 tbody .metricCol { background: rgba(255, 255, 255, 0.015); }
 

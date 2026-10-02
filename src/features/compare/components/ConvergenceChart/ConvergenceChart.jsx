@@ -9,13 +9,15 @@
 import { useState, useRef } from 'react'
 import { useCompareStore } from '../../store/useCompareStore.js'
 import { ALGO_BY_ID } from '../../constants.js'
+import { LOCAL_SEARCH } from '../../engine/runAny.js'
 import styles from './ConvergenceChart.module.css'
 
 const METRICS = [
   { id: 'distance', label: 'Distance to goal', help: 'True remaining cost from the node being expanded. A line that drops quickly to 0 means the search homes in on the goal; jumps upward mean it wandered away.' },
   { id: 'frontier', label: 'Frontier size',    help: 'Nodes waiting to be explored, which is the memory cost. Growing frontiers mean a wide search.' },
   { id: 'hCurrent', label: 'h(current node)',  help: "The heuristic's estimate for the node being expanded. Compare it with Distance to goal to see how well h guides the search." },
-  { id: 'expanded', label: 'Nodes expanded',   help: 'Cumulative search effort. Lines rise at the same rate (one expansion per visit + explore pair); where each line ends is what matters.' },
+  { id: 'expanded', label: 'Nodes expanded',   help: 'Cumulative search effort (iterations for local search). Lines rise at a similar rate; where each line ends is what matters.' },
+  { id: 'temperature', label: 'Temperature', requires: LOCAL_SEARCH.ANNEALING, help: 'Simulated Annealing cools by T ← T × α each iteration. While T is high, uphill moves are likely to be accepted; as T falls the search turns greedy and settles.' },
 ]
 
 const W = 720
@@ -25,12 +27,15 @@ const PW = W - M.left - M.right
 const PH = H - M.top - M.bottom
 
 export default function ConvergenceChart({ comparison }) {
-  const [metric, setMetric] = useState('distance')
+  const [chosenMetric, setMetric] = useState('distance')
   const [hover, setHover] = useState(null) // step index under the cursor
   const svgRef = useRef(null)
   const stepIndex = useCompareStore(s => s.stepIndex)
 
   const { ids, results } = comparison
+  const metrics = METRICS.filter(m => !m.requires || ids.includes(m.requires))
+  // Fall back if the chosen metric's algorithm left the race
+  const metric = metrics.some(m => m.id === chosenMetric) ? chosenMetric : 'distance'
   const maxStep = Math.max(1, ...ids.map(id => results[id].totalSteps - 1))
   const maxVal = niceCeil(Math.max(1, ...ids.flatMap(id => results[id].series.map(p => p[metric] ?? 0))))
 
@@ -68,7 +73,7 @@ export default function ConvergenceChart({ comparison }) {
     <div className={styles.wrap}>
       <div className={styles.controls}>
         <div className={styles.metricTabs} role="tablist" aria-label="Chart metric">
-          {METRICS.map(m => (
+          {metrics.map(m => (
             <button
               key={m.id}
               role="tab"

@@ -101,6 +101,7 @@ export function buildSeries(steps, graph, trueCost = {}) {
       frontier: s.metrics?.frontierSize ?? s.frontierNodes?.length ?? 0,
       hCurrent: s.currentNode ? getNodeHeuristic(s.currentNode, graph) : null,
       distance: d != null && isFinite(d) ? d : null,
+      temperature: s.algorithmSpecificState?.temperature ?? null, // annealing only
     }
   })
 }

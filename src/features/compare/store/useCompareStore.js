@@ -13,14 +13,25 @@ import { PLAYBACK } from '../../graph/types/graphTypes.js'
 import { validateGraph } from '../../graph/utils/graphUtils.js'
 import { runComparison } from '../engine/compareRunner.js'
 import { ALGO_ORDER, VIEW_MODE, SPEEDS } from '../constants.js'
+import { ANNEALING_DEFAULTS } from '../../graph/engine/simulatedAnnealingEngine.js'
 
 export const MIN_SELECTED = 2
+
+export const LOCAL_SEARCH_DEFAULTS = {
+  seed:     ANNEALING_DEFAULTS.seed,
+  t0:       ANNEALING_DEFAULTS.t0,
+  alpha:    ANNEALING_DEFAULTS.alpha,
+  sideways: 0,
+}
 
 export const useCompareStore = create((set, get) => ({
   // ── Selection & view ───────────────────────────────────────────────────────
   selected:    ['bfs', 'astar'],
   viewMode:    VIEW_MODE.SPLIT,
   focusedAlgo: null,          // overlay highlight on legend hover
+
+  // ── Local search settings (Hill Climbing / Simulated Annealing) ───────────
+  localSearch: { ...LOCAL_SEARCH_DEFAULTS },
 
   // ── Results ────────────────────────────────────────────────────────────────
   comparison: null,           // { ids, results, baseline, verdict }
@@ -50,6 +61,12 @@ export const useCompareStore = create((set, get) => ({
 
   selectAll: () => get().setSelected(ALGO_ORDER),
 
+  /** Merge local-search settings and re-run an active race with them. */
+  setLocalSearch: (patch) => {
+    set(state => ({ localSearch: { ...state.localSearch, ...patch } }))
+    get()._rerunIfActive({ autoPlay: true })
+  },
+
   setViewMode:    (viewMode) => set({ viewMode }),
   setFocusedAlgo: (focusedAlgo) => set({ focusedAlgo }),
 
@@ -60,7 +77,7 @@ export const useCompareStore = create((set, get) => ({
    * @param {{ autoPlay?: boolean }} [opts]
    */
   run: (graph, { autoPlay = true } = {}) => {
-    const { selected } = get()
+    const { selected, localSearch } = get()
     get()._stop()
 
     const errors = validateGraph(graph)
@@ -70,7 +87,7 @@ export const useCompareStore = create((set, get) => ({
       return
     }
 
-    const comparison = runComparison(graph, selected)
+    const comparison = runComparison(graph, selected, localSearch)
     const maxSteps = Math.max(...comparison.ids.map(id => comparison.results[id].totalSteps))
 
     set({
@@ -86,9 +103,9 @@ export const useCompareStore = create((set, get) => ({
   },
 
   /** Re-run on the same graph after the selection changes (keeps panels consistent). */
-  _rerunIfActive: () => {
+  _rerunIfActive: ({ autoPlay = false } = {}) => {
     const { comparison, ranGraph } = get()
-    if (comparison && ranGraph) get().run(ranGraph, { autoPlay: false })
+    if (comparison && ranGraph) get().run(ranGraph, { autoPlay })
   },
 
   clearResults: () => {
