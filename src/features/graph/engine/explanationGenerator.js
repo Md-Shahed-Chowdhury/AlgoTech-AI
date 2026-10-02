@@ -26,6 +26,8 @@ import { ALGORITHM, ALGORITHM_META } from '../types/graphTypes.js'
 function normalizeAlgorithmId(id) {
   if (!id) return ALGORITHM.BFS
   const s = String(id).toLowerCase().replace(/[^a-z]/g, '')
+  if (s.includes('hill') || s.includes('climb')) return ALGORITHM.HILL_CLIMBING
+  if (s.includes('anneal') || s.includes('simulated')) return ALGORITHM.SIMULATED_ANNEALING
   if (s.includes('star') || s === 'astar') return ALGORITHM.ASTAR
   if (s.includes('greedy')) return ALGORITHM.GREEDY
   if (s.includes('ucs') || s.includes('uniform')) return ALGORITHM.UCS
@@ -133,12 +135,22 @@ function buildShortExplanation(step, algorithmId) {
   const act = step.stepType || step.actionType || step.action
   const pNode = step.parentNode ?? step.currentNode
   const neighbors = step.neighbors ?? []
+  const curH = step.hCost?.[node] ?? step.algorithmSpecificState?.currentH ?? 0
 
   if (act === 'INITIALIZE' || act === 'INITIALIZE_GOAL') {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      return `Start at node ${node}. Its heuristic value is ${formatNum(curH)}.`
+    }
     return `Initialized ${algorithmId.toUpperCase()} search starting at node ${node}.`
   }
   if (act === 'GOAL_REACHED' || (step.isFinal && step.goalReached)) {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      return `The current node is the goal, so Hill Climbing has reached the target.`
+    }
     return `Goal node ${node} reached! Search completed successfully.`
+  }
+  if (act === 'LOCAL_OPTIMUM' || (step.isFinal && !step.goalReached && algorithmId === ALGORITHM.HILL_CLIMBING)) {
+    return `None of the neighboring nodes has a lower heuristic value than the current node. Therefore, Hill Climbing stops at a local optimum.`
   }
   if (act === 'NO_PATH' || (step.isFinal && !step.goalReached)) {
     return `Frontier exhausted. No path exists to the goal node.`
@@ -158,11 +170,21 @@ function buildShortExplanation(step, algorithmId) {
         return `Selected node ${node} with lowest heuristic h(${node}) = ${formatNum(step.hCost?.[node])}.`
       case ALGORITHM.ASTAR:
         return `Selected node ${node} with lowest evaluation score f(${node}) = ${formatNum(step.fCost?.[node])}.`
+      case ALGORITHM.HILL_CLIMBING:
+        return `Inspecting active node ${node} with heuristic h(${node}) = ${formatNum(curH)}.`
       default:
         return `Visited node ${node}.`
     }
   }
   if (act === 'EXPLORE_NEIGHBORS') {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      const bestCandidate = step.algorithmSpecificState?.bestCandidate
+      const bestH = step.algorithmSpecificState?.bestCandidateH
+      if (bestCandidate !== null && bestCandidate !== undefined) {
+        return `Node ${pNode} (h=${formatNum(curH)}) evaluated neighbors. Selected best improving neighbor ${bestCandidate} (h=${formatNum(bestH)} < ${formatNum(curH)}).`
+      }
+      return `Node ${pNode} evaluated neighbors, but none offered a strictly lower heuristic.`
+    }
     return neighbors.length > 0
       ? `Explored all ${neighbors.length} outgoing neighbor(s) of node ${pNode} [${neighbors.join(', ')}].`
       : `Node ${pNode} has no outgoing edges.`
@@ -181,7 +203,7 @@ function buildBeginnerExplanation(step, algorithmId, startId, goalId) {
   const pNode = step.parentNode ?? step.currentNode
   const neighbors = step.neighbors ?? []
   const g = step.gCost?.[node] ?? 0
-  const h = step.hCost?.[node] ?? 0
+  const h = step.hCost?.[node] ?? step.algorithmSpecificState?.currentH ?? 0
   const f = step.fCost?.[node] ?? (g + h)
 
   if (act === 'INITIALIZE' || act === 'INITIALIZE_GOAL') {
@@ -196,14 +218,26 @@ function buildBeginnerExplanation(step, algorithmId, startId, goalId) {
         return `We start Greedy Best-First Search at node ${startId}. Greedy acts like a person with a compass pointing toward goal ${goalId}.`
       case ALGORITHM.ASTAR:
         return `We start A* Search at node ${startId}. A* acts like a smart GPS navigator: it balances distance driven g(n) with estimated distance remaining h(n).`
+      case ALGORITHM.HILL_CLIMBING:
+        return `We start at node ${startId} with a heuristic value of ${formatNum(h)}. We examine the neighboring nodes and move to the one with the lowest heuristic value, but only if its heuristic is lower than the current node's value.`
+      case ALGORITHM.SIMULATED_ANNEALING:
+        return `We begin Simulated Annealing at node ${startId}. Think of it like forging metal at high heat: when hot, it occasionally makes random uphill moves to explore and escape local traps. As it cools down, it settles into the best path!`
       default:
         return `Starting search from node ${startId} to ${goalId}.`
     }
   }
 
   if (act === 'GOAL_REACHED' || (step.isFinal && step.goalReached)) {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      const pathStr = step.pathNodes?.join(' → ') ?? node
+      return `Goal node ${node} reached! Target goal found with heuristic 0.\n\nSolution Path: ${pathStr}.`
+    }
     const pathStr = step.pathNodes?.join(' → ') ?? node
     return `Goal node ${node} reached! We have found the solution path: ${pathStr} with total cost ${step.metrics?.totalCost ?? 0}.`
+  }
+
+  if (act === 'LOCAL_OPTIMUM' || (step.isFinal && !step.goalReached && algorithmId === ALGORITHM.HILL_CLIMBING)) {
+    return `Hill Climbing has stopped at node ${node} (heuristic ${formatNum(h)}).\n\nEvery reachable neighbor has an equal or higher heuristic score. Since Hill Climbing requires strict improvement, it stops here.`
   }
 
   if (act === 'NO_PATH' || (step.isFinal && !step.goalReached)) {
@@ -226,12 +260,48 @@ function buildBeginnerExplanation(step, algorithmId, startId, goalId) {
         return `Greedy selects node ${node} with the lowest estimated distance h(${node}) = ${formatNum(h)} to the goal. Its neighbors have NOT been evaluated yet.`
       case ALGORITHM.ASTAR:
         return `A* selects node ${node} with the lowest total evaluation score f(${node}) = ${formatNum(f)}. Its neighbors have NOT been evaluated yet.`
+      case ALGORITHM.HILL_CLIMBING:
+        return `Currently inspecting node ${node} with heuristic value h(${node}) = ${formatNum(h)}. Next, Hill Climbing will evaluate all immediate neighbors of ${node}.`
       default:
         return `Node ${node} selected from the frontier.`
     }
   }
 
   if (act === 'EXPLORE_NEIGHBORS') {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      const items = step.neighborsConsidered ?? []
+      const curH = step.algorithmSpecificState?.currentH ?? h
+      const bestCand = step.algorithmSpecificState?.bestCandidate
+      const bestH = step.algorithmSpecificState?.bestCandidateH
+      const improvingItems = items.filter(i => i.status === 'improving')
+
+      if (items.length === 0) {
+        return `Node ${pNode} has no outgoing neighbors.\nNone of the neighboring nodes has a lower heuristic value than current node ${pNode} (h=${formatNum(curH)}).\nTherefore, Hill Climbing stops.`
+      }
+
+      const evalLines = items.map(item => `• Neighbor ${item.neighborId} has heuristic h(${item.neighborId}) = ${formatNum(item.hValue)}.`)
+      
+      if (bestCand !== null && bestCand !== undefined) {
+        if (improvingItems.length > 1) {
+          const compStr = improvingItems.map(i => `h(${i.neighborId})=${formatNum(i.hValue)}`).join(' < ')
+          return `From node ${pNode} (heuristic h=${formatNum(curH)}), we examine all neighboring nodes:\n\n` +
+            `${evalLines.join('\n')}\n\n` +
+            `Both neighbors improve on current node ${pNode}, but ${bestCand} is selected because it has the lowest heuristic value: ${compStr}.\n` +
+            `Since h(${bestCand}) = ${formatNum(bestH)} is strictly lower than h(${pNode}) = ${formatNum(curH)}, Hill Climbing moves to node ${bestCand}!`
+        } else {
+          return `From node ${pNode} (heuristic h=${formatNum(curH)}), we examine all neighboring nodes:\n\n` +
+            `${evalLines.join('\n')}\n\n` +
+            `Neighbor ${bestCand} is selected because it has the lowest heuristic value (h(${bestCand}) = ${formatNum(bestH)} < h(${pNode}) = ${formatNum(curH)}).\n` +
+            `Hill Climbing moves to node ${bestCand}!`
+        }
+      } else {
+        return `From node ${pNode} (heuristic h=${formatNum(curH)}), we check all neighboring nodes:\n\n` +
+          `${evalLines.join('\n')}\n\n` +
+          `None of these neighbors has a lower heuristic value than current node ${pNode} (h=${formatNum(curH)}).\n` +
+          `Because Hill Climbing only moves to a neighbor with a strictly lower heuristic, search stops at node ${pNode}.`
+      }
+    }
+
     const pushed = (step.neighborsConsidered ?? []).filter(n => n.status === 'pushed_to_frontier' || n.status === 'updated_in_frontier' || n.status === 'goal')
     const pushedIds = pushed.map(n => n.neighborId)
     return neighbors.length > 0
@@ -252,7 +322,7 @@ function buildAdvancedExplanation(step, algorithmId, startId, goalId) {
   const pNode = step.parentNode ?? step.currentNode
   const neighbors = step.neighbors ?? []
   const g = step.gCost?.[node] ?? 0
-  const h = step.hCost?.[node] ?? 0
+  const h = step.hCost?.[node] ?? step.algorithmSpecificState?.currentH ?? 0
   const f = step.fCost?.[node] ?? (g + h)
 
   const qBefore = formatFrontierList(step.algorithmSpecificState?.queueBefore ?? step.frontierBefore, algorithmId, step)
@@ -270,14 +340,41 @@ function buildAdvancedExplanation(step, algorithmId, startId, goalId) {
         return `Initialize Greedy Best-First Search:\nWe insert start node ${startId} into the Min-Priority Queue keyed by heuristic estimate h(${startId}) = ${formatNum(step.hCost?.[startId])}. Greedy prioritizes nodes that appear closest to goal ${goalId}.`
       case ALGORITHM.ASTAR:
         return `Initialize A* Search:\nWe insert start node ${startId} into the Min-Priority Queue with evaluation score f(${startId}) = g(0) + h(${formatNum(step.hCost?.[startId])}) = ${formatNum(step.fCost?.[startId])}. A* balances path cost spent with estimated distance remaining.`
+      case ALGORITHM.HILL_CLIMBING:
+        return `Initialize Hill Climbing Search at start node ${startId}:\n\n` +
+          `• Current State: Node ${startId}\n` +
+          `• Objective Function: Heuristic h(${startId}) = ${formatNum(step.hCost?.[startId] ?? step.algorithmSpecificState?.currentH ?? 0)}\n` +
+          `• Search Paradigm: Greedy Local Search (Steepest Descent / Local Optimization)\n` +
+          `• Memory & State: Single Active State (Memoryless Local Search)\n\n` +
+          `Hill Climbing maintains only a single active state. At each step, it evaluates all immediate 1-hop outgoing neighbors and transitions if and only if h(neighbor) < h(current).`
       default:
         return `Initialize search engine from start node ${startId}.`
     }
   }
 
   if (act === 'GOAL_REACHED' || (step.isFinal && step.goalReached)) {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      const pathStr = step.pathNodes?.join(' → ') ?? node
+      return `Goal Node ${node} Reached Successfully!\n\n` +
+        `• Terminal Condition: Active state equals Goal Node (${goalId}).\n` +
+        `• Final Heuristic Metric: h(${node}) = 0.\n` +
+        `• Solution Path: ${pathStr}.\n` +
+        `• Total Edge Steps: ${step.metrics?.pathLength ?? (step.pathNodes?.length ? step.pathNodes.length - 1 : 0)}.\n` +
+        `• Algorithmic Strategy: Target goal found via greedy steepest descent local transitions.`
+    }
     const pathStr = step.pathNodes?.join(' → ') ?? node
     return `Goal node ${node} reached and popped from the frontier!\n\nThe algorithm has completed successfully. Solution Path: ${pathStr}.\nTotal path length: ${step.metrics?.pathLength ?? 0} edge(s), cumulative path cost: ${step.metrics?.totalCost ?? 0}, total nodes expanded: ${step.metrics?.nodesExpanded ?? 0}.`
+  }
+
+  if (act === 'LOCAL_OPTIMUM' || (step.isFinal && !step.goalReached && algorithmId === ALGORITHM.HILL_CLIMBING)) {
+    const curH = step.algorithmSpecificState?.currentH ?? h
+    const status = step.algorithmSpecificState?.localOptimumStatus ?? 'Local Optimum'
+    return `Hill Climbing Terminated: ${status} at Node ${node}.\n\n` +
+      `• Current State: Node ${node}\n` +
+      `• Objective Value: h(${node}) = ${formatNum(curH)}\n` +
+      `• Neighbor Evaluation: All adjacent nodes n ∈ N(${node}) satisfy h(n) ≥ h(${node}).\n` +
+      `• Gradient Status: ∇h ≥ 0 (No strictly negative gradient direction available).\n` +
+      `• Algorithmic Constraint: Pure local search lacks backtracking or random restarts; search cannot escape local minimum or plateau.`
   }
 
   if (act === 'NO_PATH' || (step.isFinal && !step.goalReached)) {
@@ -330,6 +427,14 @@ function buildAdvancedExplanation(step, algorithmId, startId, goalId) {
           `Node ${node} is now the current node being processed. Its outgoing neighbors have NOT been evaluated yet. In the next step, A* will evaluate all relevant neighbors of ${node}, computing their candidate g, h, and f values.`
       }
 
+      case ALGORITHM.HILL_CLIMBING:
+        return `Inspecting active state node ${node} with current local heuristic h(${node}) = ${formatNum(h)}.\n\n` +
+          `• Current Position: Node ${node}\n` +
+          `• Objective Target: Minimize heuristic h(n) → 0\n` +
+          `• Active Evaluation: Evaluating immediate 1-hop outgoing neighbors N(${node})\n` +
+          `• Transition Criterion: Accept candidate neighbor n' ∈ N(${node}) iff h(n') < h(${node})\n\n` +
+          `In the next step, the engine will measure the heuristic value of every adjacent node and select the candidate with the steepest heuristic improvement.`
+
       default:
         return `Node ${node} selected from frontier. Neighbors will be evaluated in the next step.`
     }
@@ -339,6 +444,47 @@ function buildAdvancedExplanation(step, algorithmId, startId, goalId) {
   // EXPLORE_NEIGHBORS Phase Detailed Teacher Explanation (Full Combined Operation)
   // ─────────────────────────────────────────────────────────────────────────
   if (act === 'EXPLORE_NEIGHBORS') {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      const items = step.neighborsConsidered ?? []
+      const curH = step.algorithmSpecificState?.currentH ?? h
+      const bestCand = step.algorithmSpecificState?.bestCandidate
+      const bestH = step.algorithmSpecificState?.bestCandidateH
+
+      if (items.length === 0) {
+        return `Evaluating 1-hop outgoing neighbors of current state node ${pNode} (h(${pNode}) = ${formatNum(curH)}):\n\n` +
+          `Node ${pNode} has no outgoing neighbors.\n\n` +
+          `• Local Optimization Analysis: Open neighborhood N(${pNode}) = Ø.\n` +
+          `• Result: Search terminates at Local Optimum node ${pNode}.`
+      }
+
+      if (bestCand !== null && bestCand !== undefined) {
+        const evalLines = items.map(item => {
+          const diff = item.hValue - curH
+          const statusStr = diff < 0 ? `h = ${formatNum(item.hValue)} (Strict Improvement: Δh = ${formatNum(diff)})` : `h = ${formatNum(item.hValue)} (No Improvement: Δh = +${formatNum(diff)})`
+          return `• Neighbor Node ${item.neighborId}: ${statusStr}`
+        })
+        const delta = bestH - curH
+        return `Evaluating all 1-hop outgoing neighbors of current state node ${pNode} (h(${pNode}) = ${formatNum(curH)}):\n\n` +
+          `${evalLines.join('\n')}\n\n` +
+          `• Candidate Analysis: Neighbor ${bestCand} yields minimum heuristic h(${bestCand}) = ${formatNum(bestH)}.\n` +
+          `• Improvement Gradient: Δh = h(${bestCand}) - h(${pNode}) = ${formatNum(bestH)} - ${formatNum(curH)} = ${formatNum(delta)} (< 0, Strict Improvement).\n` +
+          `• Transition Decision: Accept state transition ${pNode} → ${bestCand}.\n\n` +
+          `As a pure local search algorithm, Hill Climbing commits to ${bestCand} immediately without storing alternative neighbors or previous search history.`
+      } else {
+        const evalLines = items.map(item => {
+          const diff = item.hValue - curH
+          const statusStr = `h = ${formatNum(item.hValue)} (No Improvement: Δh = +${formatNum(diff)})`
+          return `• Neighbor Node ${item.neighborId}: ${statusStr}`
+        })
+        return `Evaluating all 1-hop outgoing neighbors of current state node ${pNode} (h(${pNode}) = ${formatNum(curH)}):\n\n` +
+          `${evalLines.join('\n')}\n\n` +
+          `• Local Optimization Analysis: For all adjacent nodes n ∈ N(${pNode}), h(n) ≥ h(${pNode}) = ${formatNum(curH)}.\n` +
+          `• Gradient Termination: Local gradient ∇h ≥ 0 (No strictly negative gradient direction available).\n` +
+          `• Result: Search terminates at Local Optimum node ${pNode}.\n\n` +
+          `Standard Hill Climbing lacks random restarts, stochastic acceptance, or memory-based backtracking, so it cannot escape local optima or flat plateaus.`
+      }
+    }
+
     const listStr = neighbors.length > 0 ? neighbors.join(', ') : 'none'
     const edgesStr = neighbors.length > 0 ? neighbors.map(n => `${pNode} → ${n}`).join(', ') : 'none'
     const items = step.neighborsConsidered ?? []
@@ -452,18 +598,47 @@ function buildCalculationBlock(step, algorithmId) {
   const pNode = step.parentNode ?? step.currentNode
   const neighbors = step.neighbors ?? []
   const items = step.neighborsConsidered ?? []
+  const curH = step.hCost?.[node] ?? step.algorithmSpecificState?.currentH ?? 0
 
   const qBefore = formatFrontierList(step.algorithmSpecificState?.queueBefore ?? step.frontierBefore, algorithmId, step)
   const qAfter = formatFrontierList(step.algorithmSpecificState?.queueAfter ?? step.frontierAfter ?? step.frontierNodes, algorithmId, step)
 
   if (act === 'INITIALIZE' || act === 'INITIALIZE_GOAL') {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      return [
+        `Start node: ${node}`,
+        `Initial heuristic: h(${node}) = ${formatNum(curH)}`,
+      ]
+    }
     return [`Initialization at start node: ${node}`]
   }
   if (act === 'GOAL_REACHED' || (step.isFinal && step.goalReached)) {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      return [
+        `Current node: ${node} (Goal Node)`,
+        `Result: GOAL_REACHED`,
+      ]
+    }
     return step.calculations ?? [`Total cost: ${step.metrics?.totalCost ?? 0}`]
+  }
+  if (act === 'LOCAL_OPTIMUM' || (step.isFinal && !step.goalReached && algorithmId === ALGORITHM.HILL_CLIMBING)) {
+    return [
+      `Current node: ${node} (h = ${formatNum(curH)})`,
+      `Evaluated neighbor(s): ${items.length}`,
+      ...items.map(item => `Node ${item.neighborId} has heuristic ${formatNum(item.hValue)}`),
+      `Condition h(neighbor) < h(${node}) met? No`,
+      `Result: LOCAL_OPTIMUM`,
+    ]
   }
 
   if (act === 'VISIT_NODE') {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      return [
+        `Active node: ${node}`,
+        `Current objective h(${node}) = ${formatNum(curH)}`,
+        `Selection strategy: Strictly Improving Neighbor h(neighbor) < h(${node})`,
+      ]
+    }
     return [
       `Frontier state before selection: ${qBefore}`,
       `Selected active node: ${node}`,
@@ -473,6 +648,23 @@ function buildCalculationBlock(step, algorithmId) {
   }
 
   if (act === 'EXPLORE_NEIGHBORS') {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      const bestCand = step.algorithmSpecificState?.bestCandidate
+      const bestH = step.algorithmSpecificState?.bestCandidateH
+      const calcLines = [
+        `Current node: ${pNode} (h = ${formatNum(curH)})`,
+        ...items.map(item => `Node ${item.neighborId} has heuristic ${formatNum(item.hValue)}`),
+      ]
+      if (bestCand !== null && bestCand !== undefined) {
+        calcLines.push(`Among neighboring nodes, ${bestCand} has lowest heuristic (${formatNum(bestH)})`)
+        calcLines.push(`Decision: Move to ${bestCand} (${formatNum(bestH)} < ${formatNum(curH)})`)
+      } else {
+        calcLines.push(`None of the neighboring nodes has a lower heuristic value than current node`)
+        calcLines.push(`Decision: Stop at local optimum`)
+      }
+      return calcLines
+    }
+
     const calcLines = [
       `Parent node: ${pNode}`,
       `Evaluated edges: ${neighbors.length > 0 ? neighbors.map(n => `${pNode} → ${n}`).join(', ') : 'none'}`,
@@ -512,6 +704,7 @@ function getRuleName(algorithmId) {
     case ALGORITHM.UCS: return 'Minimum Path Cost g(n)'
     case ALGORITHM.GREEDY: return 'Lowest Heuristic Estimate h(n)'
     case ALGORITHM.ASTAR: return 'Lowest Total Evaluation Score f(n) = g(n) + h(n)'
+    case ALGORITHM.HILL_CLIMBING: return 'Strictly Improving Neighbor h(neighbor) < h(current)'
     default: return 'Standard'
   }
 }
@@ -525,9 +718,23 @@ function buildDecisionReason(step, algorithmId) {
   const act = step.stepType || step.actionType || step.action
   const pNode = step.parentNode ?? step.currentNode
   const neighbors = step.neighbors ?? []
+  const curH = step.hCost?.[node] ?? step.algorithmSpecificState?.currentH ?? 0
 
-  if (act === 'INITIALIZE' || act === 'INITIALIZE_GOAL') return `Node ${node} is selected because it is the designated start node.`
-  if (act === 'GOAL_REACHED' || (step.isFinal && step.goalReached)) return `Node ${node} is the goal node!`
+  if (act === 'INITIALIZE' || act === 'INITIALIZE_GOAL') {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      return `Start at node ${node}. Its heuristic value is ${formatNum(curH)}.`
+    }
+    return `Node ${node} is selected because it is the designated start node.`
+  }
+  if (act === 'GOAL_REACHED' || (step.isFinal && step.goalReached)) {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      return `The current node is the goal, so Hill Climbing has reached the target.`
+    }
+    return `Node ${node} is the goal node!`
+  }
+  if (act === 'LOCAL_OPTIMUM' || (step.isFinal && !step.goalReached && algorithmId === ALGORITHM.HILL_CLIMBING)) {
+    return `None of the neighboring nodes has a lower heuristic value than the current node. Therefore, Hill Climbing stops at a local optimum.`
+  }
 
   if (act === 'VISIT_NODE') {
     const g = step.gCost?.[node] ?? 0
@@ -545,12 +752,32 @@ function buildDecisionReason(step, algorithmId) {
         return `Node ${node} was selected because it has the lowest heuristic estimate h(${node}) = ${formatNum(h)} to the goal.`
       case ALGORITHM.ASTAR:
         return `Node ${node} was selected because it has the lowest total evaluation score f(${node}) = ${formatNum(f)} in the frontier.`
+      case ALGORITHM.HILL_CLIMBING:
+        return `Inspecting node ${node} with heuristic value ${formatNum(curH)}.`
       default:
         return `Node ${node} selected from frontier.`
     }
   }
 
   if (act === 'EXPLORE_NEIGHBORS') {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      const bestCand = step.algorithmSpecificState?.bestCandidate
+      const bestH = step.algorithmSpecificState?.bestCandidateH
+      const items = step.neighborsConsidered ?? []
+      const improvingItems = items.filter(i => i.status === 'improving')
+
+      if (bestCand !== null && bestCand !== undefined) {
+        if (improvingItems.length > 1) {
+          const compStr = improvingItems.map(i => `h(${i.neighborId})=${formatNum(i.hValue)}`).join(' < ')
+          return `Both neighbors improve on current node ${pNode}, but ${bestCand} is selected because it has the lowest heuristic value: ${compStr}.`
+        } else {
+          return `${bestCand} is selected because it has the lowest heuristic value: h(${bestCand})=${formatNum(bestH)} < h(${pNode})=${formatNum(curH)}.`
+        }
+      } else {
+        const status = step.algorithmSpecificState?.localOptimumStatus ?? 'Local Optimum'
+        return `None of the neighboring nodes has a strictly lower heuristic value than current node ${pNode} (h=${formatNum(curH)}). Hill Climbing stops (${status}).`
+      }
+    }
     const items = step.neighborsConsidered ?? []
     const pushed = items.filter(n => n.status === 'pushed_to_frontier' || n.status === 'updated_in_frontier' || n.status === 'goal').map(n => n.neighborId)
     return neighbors.length > 0
@@ -568,13 +795,61 @@ function buildDecisionReason(step, algorithmId) {
 function buildWhyNotOthers(step, algorithmId) {
   const selectedNode = step.currentNode ?? step.selectedNode
   const act = step.stepType || step.actionType || step.action
+  const isHC = algorithmId === ALGORITHM.HILL_CLIMBING
 
-  if (step.isInitial || step.isFinal || act === 'SKIP_VISITED') {
+  if (step.isInitial || (step.isFinal && act !== 'LOCAL_OPTIMUM') || act === 'SKIP_VISITED') {
     return {
-      selected: { node: selectedNode ?? 'N/A', valueStr: '' },
+      selected: { node: selectedNode ?? 'N/A', valueStr: isHC ? `h(${selectedNode}) = ${formatNum(step.hCost?.[selectedNode])}` : '' },
       alternatives: [],
-      summary: step.isInitial ? 'Only start node in frontier.' : 'Search ended.',
-      formattedText: 'No competing candidates at this step.',
+      summary: step.isInitial ? (isHC ? 'Initial state of local search.' : 'Only start node in frontier.') : 'Search ended.',
+      formattedText: isHC ? `Start node ${selectedNode} initialized. Evaluating immediate neighbors.` : 'No competing candidates at this step.',
+    }
+  }
+
+  if (algorithmId === ALGORITHM.HILL_CLIMBING && (act === 'EXPLORE_NEIGHBORS' || act === 'LOCAL_OPTIMUM')) {
+    const items = step.neighborsConsidered ?? []
+    const curH = step.algorithmSpecificState?.currentH ?? step.hCost?.[selectedNode] ?? 0
+    const bestCand = step.algorithmSpecificState?.bestCandidate
+    const bestH = step.algorithmSpecificState?.bestCandidateH
+
+    const alternatives = items.map(item => {
+      const altNode = item.neighborId
+      const altH = item.hValue
+      let statusText = `Node ${altNode} has heuristic ${formatNum(altH)}.`
+      let reasonText = ''
+
+      if (bestCand !== null && bestCand !== undefined) {
+        if (altNode === bestCand) {
+          reasonText = `Selected as best improving neighbor (${formatNum(altH)} < ${formatNum(curH)}).`
+        } else if (altH < curH) {
+          reasonText = `Improves heuristic, but higher than best neighbor ${bestCand} (${formatNum(altH)} vs ${formatNum(bestH)}).`
+        } else {
+          reasonText = `Does not improve heuristic over current node ${selectedNode} (${formatNum(altH)} >= ${formatNum(curH)}).`
+        }
+      } else {
+        reasonText = `Does not improve heuristic over current node ${selectedNode} (${formatNum(altH)} >= ${formatNum(curH)}).`
+      }
+
+      return {
+        node: altNode,
+        valueStr: `h(${altNode}) = ${formatNum(altH)}`,
+        comparison: `h(${altNode})=${formatNum(altH)} vs h(${selectedNode})=${formatNum(curH)}`,
+        reason: reasonText,
+      }
+    })
+
+    const summaryLine = bestCand !== null && bestCand !== undefined
+      ? `Among the neighboring nodes, ${bestCand} has the lowest heuristic value.`
+      : `None of the neighboring nodes has a lower heuristic value than the current node.`
+
+    const textLines = alternatives.map(a => `Node ${a.node} has heuristic ${a.valueStr.replace('h(', '').replace(') = ', ' ')}. ${a.reason}`)
+    textLines.push(summaryLine)
+
+    return {
+      selected: { node: bestCand ?? selectedNode, valueStr: bestCand ? `h(${bestCand}) = ${formatNum(bestH)}` : `h(${selectedNode}) = ${formatNum(curH)}` },
+      alternatives,
+      summary: summaryLine,
+      formattedText: textLines.join('\n'),
     }
   }
 
@@ -735,6 +1010,7 @@ function getSelectedValueStr(node, step, algorithmId) {
     case ALGORITHM.UCS:    return `g(${node}) = ${g}`
     case ALGORITHM.GREEDY: return `h(${node}) = ${formatNum(h)}`
     case ALGORITHM.ASTAR:  return `f(${node}) = ${formatNum(f)}`
+    case ALGORITHM.HILL_CLIMBING: return `h(${node}) = ${formatNum(h)}`
     default:               return `Selected`
   }
 }
@@ -748,12 +1024,22 @@ function buildVoiceText(step, algorithmId, graph) {
   const act = step.stepType || step.actionType || step.action
   const pNode = step.parentNode ?? step.currentNode
   const neighbors = step.neighbors ?? []
+  const curH = step.hCost?.[node] ?? step.algorithmSpecificState?.currentH ?? 0
 
   if (act === 'INITIALIZE' || act === 'INITIALIZE_GOAL') {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      return `Start at node ${node}. Its heuristic value is ${numberToWords(curH)}.`
+    }
     return `Starting search algorithm from node ${node}.`
   }
   if (act === 'GOAL_REACHED' || (step.isFinal && step.goalReached)) {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      return `The current node is the goal, so Hill Climbing has reached the target.`
+    }
     return `Goal node ${node} reached! Path found with total cost ${step.metrics?.totalCost ?? 0}.`
+  }
+  if (act === 'LOCAL_OPTIMUM' || (step.isFinal && !step.goalReached && algorithmId === ALGORITHM.HILL_CLIMBING)) {
+    return `None of the neighboring nodes has a lower heuristic value than the current node. Therefore, Hill Climbing stops at a local optimum.`
   }
   if (act === 'NO_PATH' || (step.isFinal && !step.goalReached)) {
     return `No path found to goal node ${graph?.goalId ?? ''}.`
@@ -764,7 +1050,7 @@ function buildVoiceText(step, algorithmId, graph) {
 
   if (act === 'VISIT_NODE') {
     const g = step.gCost?.[node] ?? 0
-    const h = step.hCost?.[node] ?? 0
+    const h = step.hCost?.[node] ?? curH
     const f = step.fCost?.[node] ?? (g + h)
     const gWords = numberToWords(g)
     const hWords = numberToWords(h)
@@ -781,12 +1067,23 @@ function buildVoiceText(step, algorithmId, graph) {
         return `Node ${node} is selected with lowest heuristic ${hWords}. Its neighbors have not been evaluated yet.`
       case ALGORITHM.ASTAR:
         return `Node ${node} is selected with lowest f-score ${fWords}. Its neighbors have not been evaluated yet.`
+      case ALGORITHM.HILL_CLIMBING:
+        return `Inspecting node ${node} with heuristic value ${hWords}.`
       default:
         return `Node ${node} is visited.`
     }
   }
 
   if (act === 'EXPLORE_NEIGHBORS') {
+    if (algorithmId === ALGORITHM.HILL_CLIMBING) {
+      const bestCand = step.algorithmSpecificState?.bestCandidate
+      const bestH = step.algorithmSpecificState?.bestCandidateH
+      if (bestCand !== null && bestCand !== undefined) {
+        return `Evaluating neighbors of node ${pNode}. Node ${bestCand} has the lowest heuristic ${numberToWords(bestH)}. Hill Climbing moves from ${pNode} to ${bestCand}.`
+      }
+      return `Evaluating neighbors of node ${pNode}. None of the neighboring nodes has a lower heuristic value than the current node. Hill Climbing stops at a local optimum.`
+    }
+
     const items = step.neighborsConsidered ?? []
     const pushed = items.filter(n => n.status === 'pushed_to_frontier' || n.status === 'updated_in_frontier' || n.status === 'goal').map(n => n.neighborId)
 

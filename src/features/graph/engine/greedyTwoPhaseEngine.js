@@ -17,6 +17,7 @@ import {
   getNodeHeuristic,
   reconstructPath,
   pathToEdges,
+  calculatePathCost,
 } from '../utils/graphUtils.js'
 
 const fmt = (n) => (typeof n === 'number' ? (Number.isInteger(n) ? String(n) : n.toFixed(1)) : String(n ?? 0))
@@ -28,7 +29,6 @@ export function runGreedyTwoPhase(graph, options = {}) {
 
   const allNodeIds = Object.keys(nodes)
   const adj = buildAdjacency(graph, false)
-  const hFunc = options.heuristicFn ?? euclideanHeuristic
 
   const computeH = (nodeId) => getNodeHeuristic(nodeId, graph)
 
@@ -147,6 +147,7 @@ export function runGreedyTwoPhase(graph, options = {}) {
     if (current === goalId) {
       const pathNodes = reconstructPath(parentMap, goalId)
       const pathEdges = pathToEdges(pathNodes, graph)
+      const cost = calculatePathCost(pathNodes, graph)
       steps.push({
         stepIndex: steps.length,
         stepType: ACTION_TYPE.GOAL_REACHED,
@@ -167,7 +168,7 @@ export function runGreedyTwoPhase(graph, options = {}) {
         neighbors: [],
         neighborsConsidered: [],
         reason: `Goal node ${goalId} popped from Priority Queue! h(${goalId}) = 0. Solution path: ${pathNodes.join(' → ')}.`,
-        metrics: { nodesExpanded, pathLength: pathNodes.length - 1, totalCost: pathNodes.length - 1, frontierSize: pq.size },
+        metrics: { nodesExpanded, pathLength: pathNodes.length - 1, totalCost: cost, frontierSize: pq.size },
         isInitial: false,
         isFinal: true,
         pathFound: true,
@@ -195,7 +196,7 @@ export function runGreedyTwoPhase(graph, options = {}) {
       neighbors: [],
       neighborsConsidered: [],
       reason: `Greedy selects node ${current} with lowest heuristic estimate h(${current}) = ${fmt(currentH)} from Priority Queue.`,
-      metrics: { nodesExpanded, pathLength: currentPath.length - 1, totalCost: 0, frontierSize: pq.size },
+      metrics: { nodesExpanded, pathLength: currentPath.length - 1, totalCost: calculatePathCost(currentPath, graph), frontierSize: pq.size },
       isInitial: false,
       isFinal: false,
       pathFound: false,
@@ -264,7 +265,7 @@ export function runGreedyTwoPhase(graph, options = {}) {
       reason: neighbors.length > 0
         ? `Node ${current} evaluated all ${neighbors.length} outgoing neighbor(s). Calculated heuristic estimates h(n) and pushed new nodes [${pushedIds.join(', ')}] to Priority Queue.`
         : `Node ${current} has no outgoing edges.`,
-      metrics: { nodesExpanded, pathLength: currentPath.length - 1, totalCost: 0, frontierSize: pq.size },
+      metrics: { nodesExpanded, pathLength: currentPath.length - 1, totalCost: calculatePathCost(currentPath, graph), frontierSize: pq.size },
       isInitial: false,
       isFinal: false,
       pathFound: false,

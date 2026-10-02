@@ -9,13 +9,13 @@
  *      • UCS: Priority Queue table with g(n) path cost
  *      • Greedy: Priority Queue table with h(n) heuristic estimate
  *      • A*: Priority Queue table with g(n), h(n), and f(n) = g(n) + h(n)
+ *      • Hill Climbing: Current state, h(current), candidate neighbor evaluation, selected move, local status
  */
 
 import { motion } from 'framer-motion'
 import {
   Circle,
   Eye,
-  Layers,
   ListOrdered,
   Footprints,
   Compass,
@@ -34,11 +34,18 @@ export default function AlgorithmStatePanel() {
   const meta = ALGORITHM_META[selectedAlgorithm]
 
   if (!currentStep) {
+    const isUnimplemented = selectedAlgorithm === ALGORITHM.SIMULATED_ANNEALING
     return (
       <div className={`card ${styles.panel}`}>
         <div className={styles.emptyState}>
           <Compass size={24} className={styles.emptyIcon} />
-          <p>Run the algorithm simulation to inspect step-by-step state changes.</p>
+          {isUnimplemented ? (
+            <p>
+              <strong>{meta?.name || 'Algorithm'} State:</strong> Registered in algorithm catalogue. Engine execution coming in next phase.
+            </p>
+          ) : (
+            <p>Run the algorithm simulation to inspect step-by-step state changes.</p>
+          )}
         </div>
       </div>
     )
@@ -49,15 +56,23 @@ export default function AlgorithmStatePanel() {
     selectedNode,
     visitedNodes,
     frontierNodes,
-    unexploredNodes,
-    discoveredNodes,
     currentPath,
     frontierDetail,
     algorithmSpecificState,
     gCost,
     hCost,
     fCost,
+    action,
+    goalReached,
   } = currentStep
+
+  const curH = hCost?.[currentNode] ?? algorithmSpecificState?.currentH
+  const selectedMove = algorithmSpecificState?.bestCandidate ?? (action === 'EXPLORE_NEIGHBORS' ? selectedNode : null)
+  const hcStatus = action === 'GOAL_REACHED' || goalReached
+    ? 'Goal Reached'
+    : (action === 'LOCAL_OPTIMUM'
+      ? 'Local Optimum'
+      : (currentStep.neighbors && currentStep.neighbors.length === 0 ? 'No Valid Neighbor' : 'Searching'))
 
   return (
     <div className={`card ${styles.panel}`}>
@@ -74,25 +89,63 @@ export default function AlgorithmStatePanel() {
         </span>
       </div>
 
-      {/* Nodes Summary (Current, Selected, Path) */}
-      <div className={styles.nodeSummaryGrid}>
-        <div className={styles.nodeSummaryTile}>
-          <span className={styles.tileLabel}>Current Node</span>
-          <span className={`${styles.tileValue} ${currentNode ? styles.valCurrent : styles.valEmpty}`}>
-            {currentNode ?? 'None'}
-          </span>
-        </div>
+      {/* Nodes Summary (Current, Selected / Heuristic, Status / Path) */}
+      {selectedAlgorithm === ALGORITHM.HILL_CLIMBING ? (
+        <div className={styles.nodeSummaryGrid}>
+          <div className={styles.nodeSummaryTile}>
+            <span className={styles.tileLabel}>Current Node</span>
+            <span className={`${styles.tileValue} ${currentNode ? styles.valCurrent : styles.valEmpty}`}>
+              {currentNode ?? 'None'}
+            </span>
+          </div>
 
-        <div className={styles.nodeSummaryTile}>
-          <span className={styles.tileLabel}>Selected Node</span>
-          <span className={`${styles.tileValue} ${selectedNode ? styles.valSelected : styles.valEmpty}`}>
-            {selectedNode ?? 'None'}
-          </span>
+          <div className={styles.nodeSummaryTile}>
+            <span className={styles.tileLabel}>Current Heuristic</span>
+            <span className={`${styles.tileValue} ${curH !== undefined ? styles.valSelected : styles.valEmpty}`}>
+              {curH !== undefined ? `h = ${curH}` : '—'}
+            </span>
+          </div>
+
+          <div className={styles.nodeSummaryTile}>
+            <span className={styles.tileLabel}>Selected Move</span>
+            <span className={`${styles.tileValue} ${selectedMove ? styles.valSelected : styles.valEmpty}`}>
+              {selectedMove ?? 'None'}
+            </span>
+          </div>
+
+          <div className={styles.nodeSummaryTile}>
+            <span className={styles.tileLabel}>Status</span>
+            <span
+              className={styles.tileValue}
+              style={{
+                fontSize: '0.85rem',
+                color: hcStatus === 'Goal Reached' ? '#10b981' : (hcStatus === 'Local Optimum' ? '#f43f5e' : '#38bdf8')
+              }}
+            >
+              {hcStatus}
+            </span>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className={styles.nodeSummaryGrid}>
+          <div className={styles.nodeSummaryTile}>
+            <span className={styles.tileLabel}>Current Node</span>
+            <span className={`${styles.tileValue} ${currentNode ? styles.valCurrent : styles.valEmpty}`}>
+              {currentNode ?? 'None'}
+            </span>
+          </div>
+
+          <div className={styles.nodeSummaryTile}>
+            <span className={styles.tileLabel}>Selected Node</span>
+            <span className={`${styles.tileValue} ${selectedNode ? styles.valSelected : styles.valEmpty}`}>
+              {selectedNode ?? 'None'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Active Edge Evaluation Context */}
-      {currentStep.parentNode && currentStep.neighborNode && (
+      {currentStep.parentNode && currentStep.neighborNode && selectedAlgorithm !== ALGORITHM.HILL_CLIMBING && (
         <div className={styles.neighborContextCard}>
           <span className={styles.neighborContextLabel}>Active Edge Evaluation</span>
           <div className={styles.neighborContextRow}>
@@ -110,7 +163,7 @@ export default function AlgorithmStatePanel() {
       {currentPath && currentPath.length > 0 && (
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>
-            <Footprints size={13} /> Current Path
+            <Footprints size={13} /> {selectedAlgorithm === ALGORITHM.HILL_CLIMBING ? 'Search Trajectory' : 'Current Path'}
           </h3>
           <div className={styles.pathTrail}>
             {currentPath.map((id, idx) => (
@@ -123,13 +176,14 @@ export default function AlgorithmStatePanel() {
         </div>
       )}
 
-      {/* Algorithm-Specific Data Structure Section (Queue / Stack / Priority Queue) */}
+      {/* Algorithm-Specific Data Structure Section (Queue / Stack / Priority Queue / Hill Climbing Candidates) */}
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>
           <ListOrdered size={13} />{' '}
           {selectedAlgorithm === ALGORITHM.BFS && 'FIFO Queue'}
           {selectedAlgorithm === ALGORITHM.DFS && 'LIFO Stack'}
-          {selectedAlgorithm !== ALGORITHM.BFS && selectedAlgorithm !== ALGORITHM.DFS && 'Priority Queue'}
+          {selectedAlgorithm === ALGORITHM.HILL_CLIMBING && 'Candidate Neighbors'}
+          {selectedAlgorithm !== ALGORITHM.BFS && selectedAlgorithm !== ALGORITHM.DFS && selectedAlgorithm !== ALGORITHM.HILL_CLIMBING && 'Priority Queue'}
         </h3>
 
         {/* BFS Queue Display */}
@@ -182,8 +236,48 @@ export default function AlgorithmStatePanel() {
           </div>
         )}
 
+        {/* Hill Climbing Candidate Neighbors Table */}
+        {selectedAlgorithm === ALGORITHM.HILL_CLIMBING && (
+          <div className={styles.tableWrapper}>
+            {currentStep.neighborsConsidered && currentStep.neighborsConsidered.length > 0 ? (
+              <table className={styles.pqTable}>
+                <thead>
+                  <tr>
+                    <th>Candidate</th>
+                    <th>h(candidate)</th>
+                    <th>Improvement Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentStep.neighborsConsidered.map((item) => {
+                    const isImproving = item.status === 'improving'
+                    const isVisited = item.status === 'already_visited'
+                    return (
+                      <tr key={item.neighborId} className={item.neighborId === algorithmSpecificState?.bestCandidate ? styles.activeRow : ''}>
+                        <td className={styles.nodeCell}>{item.neighborId}</td>
+                        <td className={styles.priorityCell}>{item.hValue}</td>
+                        <td>
+                          {isImproving ? (
+                            <span style={{ color: '#10b981', fontWeight: 600 }}>Improving ({item.hValue} &lt; {curH})</span>
+                          ) : isVisited ? (
+                            <span style={{ color: '#94a3b8' }}>Already Visited</span>
+                          ) : (
+                            <span style={{ color: '#f43f5e' }}>Not Improving ({item.hValue} ≥ {curH})</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <span className={styles.emptyText}>No candidate neighbors evaluated at this step</span>
+            )}
+          </div>
+        )}
+
         {/* UCS / Greedy / A* Priority Queue Table */}
-        {selectedAlgorithm !== ALGORITHM.BFS && selectedAlgorithm !== ALGORITHM.DFS && (
+        {selectedAlgorithm !== ALGORITHM.BFS && selectedAlgorithm !== ALGORITHM.DFS && selectedAlgorithm !== ALGORITHM.HILL_CLIMBING && (
           <div className={styles.tableWrapper}>
             {frontierDetail && frontierDetail.length > 0 ? (
               <table className={styles.pqTable}>
@@ -245,14 +339,14 @@ export default function AlgorithmStatePanel() {
         </div>
       </div>
 
-      {/* Frontier / Unexplored Set */}
+      {/* Frontier Nodes / Immediate Neighbors */}
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>
-          <Eye size={13} className={styles.frontierIcon} /> Frontier Nodes ({frontierNodes.length})
+          <Eye size={13} className={styles.frontierIcon} /> {selectedAlgorithm === ALGORITHM.HILL_CLIMBING ? 'Immediate Neighbors' : 'Frontier Nodes'} ({frontierNodes.length})
         </h3>
         <div className={styles.chipsRow}>
           {frontierNodes.length === 0 ? (
-            <span className={styles.emptyText}>None in frontier</span>
+            <span className={styles.emptyText}>{selectedAlgorithm === ALGORITHM.HILL_CLIMBING ? 'No immediate neighbors' : 'None in frontier'}</span>
           ) : (
             frontierNodes.map(id => (
               <span key={id} className={styles.frontierChip}>

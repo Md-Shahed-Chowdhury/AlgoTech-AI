@@ -28,11 +28,13 @@ export const EDGE_STATE = {
 
 // ── Supported algorithm identifiers ──────────────────────────────────────────
 export const ALGORITHM = {
-  BFS:     'bfs',
-  DFS:     'dfs',
-  UCS:     'ucs',
-  GREEDY:  'greedy',
-  ASTAR:   'astar',
+  BFS:                 'bfs',
+  DFS:                 'dfs',
+  UCS:                 'ucs',
+  GREEDY:              'greedy',
+  ASTAR:               'astar',
+  HILL_CLIMBING:       'hillclimbing',
+  SIMULATED_ANNEALING: 'simulatedannealing',
 }
 
 // ── Application modes ─────────────────────────────────────────────────────────
@@ -144,5 +146,32 @@ export const ALGORITHM_META = {
     weighted:    true,
     heuristic:   true,
     description: 'Combines cost-so-far (g) and heuristic (h). Optimal and complete with admissible heuristic.',
+  },
+  [ALGORITHM.HILL_CLIMBING]: {
+    id:                ALGORITHM.HILL_CLIMBING,
+    name:              'Hill Climbing',
+    shortName:         'Hill Climbing',
+    tag:               'Local Search / Optimization',
+    color:             '#38bdf8',
+    complexity:        { time: 'O(V)', space: 'O(1)' },
+    weighted:          false,
+    heuristic:         true,
+    searchType:        'Local Search',
+    requiresHeuristic: true,
+    description:       'Iteratively moves to neighboring node with lower heuristic value h(n). Can get stuck at local optima.',
+  },
+  [ALGORITHM.SIMULATED_ANNEALING]: {
+    id:                ALGORITHM.SIMULATED_ANNEALING,
+    name:              'Simulated Annealing',
+    shortName:         'Simulated Annealing',
+    tag:               'Local Search / Optimization',
+    color:             '#a855f7',
+    complexity:        { time: 'O(K)', space: 'O(1)' },
+    weighted:          false,
+    heuristic:         true,
+    searchType:        'Local Search / Optimization',
+    requiresHeuristic: true,
+    stochastic:        true,
+    description:       'Stochastic search accepting worse moves with probability decaying over Temperature T.',
   },
 }
