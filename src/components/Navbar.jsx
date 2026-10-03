@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { BookOpen, ClipboardList, Grid3x3, Brain, Menu, X } from 'lucide-react'
+import { BookOpen, ClipboardList, Grid3x3, GitCompareArrows, Brain, Menu, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import styles from './Navbar.module.css'
 
@@ -24,6 +24,13 @@ const NAV_ITEMS = [
     icon: Grid3x3,
     accent: '#f59e0b',
     desc: 'Pathfinding on grid',
+  },
+  {
+    to: '/compare',
+    label: 'Compare',
+    icon: GitCompareArrows,
+    accent: '#38bdf8',
+    desc: 'Race algorithms head-to-head',
   },
 ]
 

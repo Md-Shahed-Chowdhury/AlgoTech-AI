@@ -168,6 +168,48 @@
   filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.8));
 }
 
+/* ── Accent tint (Compare mode: one color per algorithm) ───────────────────── */
+/* Applied only when GraphCanvas receives `accentColor`; Learn / Test unaffected. */
+
+.tinted .node--frontier .nodeCircle {
+  fill: color-mix(in srgb, var(--algo-accent) 16%, transparent);
+  stroke: var(--algo-accent);
+  stroke-dasharray: 5 3;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--algo-accent) 55%, transparent));
+}
+
+.tinted .node--current .nodeCircle {
+  fill: var(--algo-accent);
+  stroke: #fff;
+  filter: drop-shadow(0 0 14px var(--algo-accent));
+}
+
+.tinted .node--visited .nodeCircle {
+  fill: color-mix(in srgb, var(--algo-accent) 34%, transparent) !important;
+  stroke: var(--algo-accent) !important;
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--algo-accent) 60%, transparent)) !important;
+}
+
+.tinted .node--visited .nodeText { fill: var(--text) !important; }
+
+.tinted .node--path .nodeCircle {
+  fill: color-mix(in srgb, var(--algo-accent) 60%, transparent);
+  stroke: #fff;
+  stroke-width: 3px;
+  filter: drop-shadow(0 0 14px var(--algo-accent));
+}
+
+.tinted .edge--active .edgeLine {
+  stroke: var(--algo-accent);
+  filter: drop-shadow(0 0 8px var(--algo-accent));
+}
+
+.tinted .edge--path .edgeLine {
+  stroke: var(--algo-accent);
+  stroke-width: 5px;
+  filter: drop-shadow(0 0 10px var(--algo-accent));
+}
+
 /* Weight Badge */
 .weightBadge {
   fill: var(--bg-card);

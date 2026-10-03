@@ -1,0 +1,168 @@
+.wrap { display: flex; flex-direction: column; gap: 1.5rem; }
+
+.sectionTitle { font-size: 0.95rem; font-weight: 800; color: var(--text); }
+.sectionHint { font-size: 0.75rem; color: var(--text-muted); margin: 0.15rem 0 0.8rem; }
+
+/* Podium */
+.podium {
+  display: grid;
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.place {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--r-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-sub);
+  border-left: 3px solid var(--c);
+}
+
+.first {
+  background: color-mix(in srgb, var(--c) 10%, var(--bg-elevated));
+  border-color: color-mix(in srgb, var(--c) 50%, transparent);
+  border-left-color: var(--c);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--c) 20%, transparent);
+}
+
+.placeTop { display: flex; align-items: center; gap: 0.45rem; }
+
+.rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 0.3rem;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--text-2);
+  background: rgba(255, 255, 255, 0.06);
+}
+.first .rank { color: #fcd34d; background: rgba(245, 158, 11, 0.16); }
+
+.swatch { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+
+.placeName { font-weight: 800; color: var(--text); }
+
+.score {
+  font-family: var(--mono);
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--text);
+}
+.scoreMax { font-size: 0.75rem; color: var(--text-muted); margin-left: 0.15rem; }
+
+.placeMeta { font-size: 0.72rem; color: var(--text-muted); }
+
+/* Criteria */
+.criteria {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.criterion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--r-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-sub);
+}
+
+.critHead { display: flex; gap: 0.65rem; align-items: flex-start; }
+
+.critIcon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-light);
+  background: rgba(99, 102, 241, 0.14);
+}
+
+.critTitle { font-size: 0.92rem; font-weight: 800; color: var(--text); }
+.critHint { font-size: 0.74rem; color: var(--text-muted); line-height: 1.4; }
+
+.winnerRow { display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; }
+
+.winnerLabel {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-right: 0.2rem;
+}
+
+.winnerChip {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text);
+  background: color-mix(in srgb, var(--c) 22%, transparent);
+  border: 1px solid var(--c);
+}
+
+.none { font-size: 0.75rem; color: var(--text-muted); }
+
+/* Bars */
+.bars { list-style: none; display: flex; flex-direction: column; gap: 0.45rem; }
+
+.barRow {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.barLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.barTrack {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.barFill { display: block; height: 100%; border-radius: 4px; }
+
+.barValue {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text-2);
+  white-space: nowrap;
+  text-align: right;
+  min-width: 7.5rem;
+}
+
+@media (max-width: 860px) {
+  .criteria { grid-template-columns: minmax(0, 1fr); }
+  .podium { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
+
+@media (max-width: 480px) {
+  .barRow { grid-template-columns: 56px minmax(0, 1fr); }
+  .barValue { grid-column: 2; text-align: left; min-width: 0; }
+}

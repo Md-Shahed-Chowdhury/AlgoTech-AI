@@ -1,0 +1,111 @@
+.wrap { display: flex; flex-direction: column; gap: 0.85rem; }
+
+.canvas {
+  width: 100%;
+  max-height: 68vh;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-sub);
+  background: var(--bg-card);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.svg { display: block; width: 100%; height: 100%; }
+
+.fade { transition: opacity var(--normal); }
+
+/* Edges */
+.edge { stroke: var(--border); stroke-width: 2.2px; }
+
+.pathLine { filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.6)); }
+
+.weightBadge { fill: var(--bg-card); stroke: var(--border-sub); stroke-width: 1.5px; }
+
+.weightText {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--text-2);
+}
+
+/* Nodes */
+.node { fill: var(--bg-elevated); stroke: var(--border); stroke-width: 2px; }
+.start { stroke: #10b981; stroke-width: 2.5px; fill: rgba(16, 185, 129, 0.14); }
+.goal  { stroke: #f43f5e; stroke-width: 2.5px; fill: rgba(244, 63, 94, 0.14); }
+
+.nodeText {
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 800;
+  fill: var(--text);
+  pointer-events: none;
+}
+
+.hText {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--text-muted);
+}
+
+.startTag, .goalTag {
+  font-family: var(--font);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+.startTag { fill: #6ee7b7; }
+.goalTag  { fill: #fda4af; }
+
+/* Legend */
+.legend { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-sub);
+  background: var(--bg-card);
+  color: var(--text-2);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--fast), background var(--fast);
+}
+.legendItem:hover,
+.legendFocused {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 10%, var(--bg-card));
+}
+
+.legendName { font-weight: 800; font-size: 0.88rem; color: var(--text); }
+
+.legendStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Key */
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1.1rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.key > span { display: inline-flex; align-items: center; gap: 0.3rem; }
+.keyNote { flex-basis: 100%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .spin { animation: none; }
+  .fade { transition: none; }
+}

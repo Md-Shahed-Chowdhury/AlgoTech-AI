@@ -75,11 +75,15 @@ export default function GraphCanvas({
   activeStep,
   feedbackNodeId,
   feedbackType,
+  graph: graphProp,      // render this graph instead of the store's (Compare mode)
+  accentColor,           // tint visited / frontier / path states (Compare mode)
+  viewBox,               // custom "x y w h"; canvas then scales by aspect ratio
 }) {
   const svgRef = useRef(null)
 
   // Graph topology store
-  const graph = useGraphStore(s => s.graph)
+  const storeGraph = useGraphStore(s => s.graph)
+  const graph = graphProp ?? storeGraph
   const builderMode = useGraphStore(s => s.builderMode)
   const selectedNodeId = useGraphStore(s => s.selectedNodeId)
   const selectedEdgeId = useGraphStore(s => s.selectedEdgeId)
@@ -275,14 +279,20 @@ export default function GraphCanvas({
   // Pending edge source node object
   const pendingSrcNode = pendingEdgeSrcId ? graph.nodes[pendingEdgeSrcId] : null
 
+  const [, , vbWidth, vbHeight] = (viewBox ?? '').split(' ').map(Number)
+  const wrapStyle = viewBox
+    ? { width: '100%', aspectRatio: `${vbWidth} / ${vbHeight}` }
+    : { width: '100%', height }
+  if (accentColor) wrapStyle['--algo-accent'] = accentColor
+
   return (
-    <div className={styles.canvasWrap} style={{ width: '100%', height }}>
+    <div className={`${styles.canvasWrap} ${accentColor ? styles.tinted : ''}`} style={wrapStyle}>
       <svg
         ref={svgRef}
         className={styles.svg}
         width="100%"
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
+        height={viewBox ? '100%' : height}
+        viewBox={viewBox ?? `0 0 ${width} ${height}`}
         onPointerDown={handleCanvasPointerDown}
         onPointerMove={handleSvgPointerMove}
         aria-label="Interactive graph canvas"

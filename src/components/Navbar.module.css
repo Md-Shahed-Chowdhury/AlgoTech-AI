@@ -202,7 +202,11 @@
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────── */
-@media (max-width: 640px) {
+@media (max-width: 900px) {
+  .navLink { padding: 0.45rem 0.6rem; font-size: 0.8rem; }
+}
+
+@media (max-width: 760px) {
   .navbar { padding: 0 1rem; }
   .nav    { display: none; }
   .hamburger { display: flex; }

@@ -1,0 +1,78 @@
+.scroll {
+  overflow-x: auto;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-sub);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.table th,
+.table td {
+  padding: 0.6rem 0.7rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-sub);
+  white-space: nowrap;
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-elevated);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.algoHead { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; }
+.swatch { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+
+.metricCol {
+  font-weight: 600;
+  color: var(--text-2);
+  min-width: 170px;
+}
+tbody .metricCol { background: rgba(255, 255, 255, 0.015); }
+
+.baseline,
+.rowHint {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.table td { color: var(--text); font-variant-numeric: tabular-nums; }
+
+.mono { font-family: var(--mono); font-size: 0.78rem; }
+
+.groupRow td {
+  padding: 0.75rem 0.85rem 0.4rem;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  background: var(--bg-card);
+}
+
+.best {
+  background: color-mix(in srgb, var(--c) 13%, transparent);
+  font-weight: 800;
+}
+
+.crown {
+  margin-left: 0.35rem;
+  vertical-align: -1px;
+  color: #fcd34d;
+}
+
+.yes, .no { display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 700; }
+.yes { color: #6ee7b7; }
+.no  { color: #fda4af; }
+
+tbody tr:hover td,
+tbody tr:hover th { background-color: rgba(255, 255, 255, 0.025); }

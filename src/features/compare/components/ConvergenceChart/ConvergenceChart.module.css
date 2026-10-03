@@ -1,0 +1,118 @@
+.wrap { display: flex; flex-direction: column; gap: 0.6rem; }
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.metricTabs {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--r-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-sub);
+}
+
+.metricBtn {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: calc(var(--r-md) - 3px);
+  background: none;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.metricBtn:hover { color: var(--text); }
+.metricActive { background: var(--accent); color: #fff; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 0.9rem; }
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+.help { font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; }
+
+.chart {
+  position: relative;
+  border-radius: var(--r-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-sub);
+  padding: 0.5rem;
+}
+
+.svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+
+.grid { stroke: rgba(255, 255, 255, 0.05); stroke-width: 1; }
+.axis { stroke: rgba(255, 255, 255, 0.18); stroke-width: 1; }
+
+.tick {
+  font-family: var(--mono);
+  font-size: 10px;
+  fill: var(--text-muted);
+}
+
+.axisLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  fill: var(--text-muted);
+}
+
+.playhead { stroke: var(--accent-light); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.5; }
+.crosshair { stroke: rgba(255, 255, 255, 0.35); stroke-width: 1; }
+
+/* 2px surface ring keeps overlapping markers separable */
+.endDot { stroke: var(--bg-elevated); stroke-width: 2; }
+
+.endLabel {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--text-2);
+}
+
+.tooltip {
+  position: absolute;
+  top: 0.75rem;
+  min-width: 150px;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--r-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.tipTitle {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
+}
+
+.tipRow {
+  display: grid;
+  grid-template-columns: 10px auto 1fr;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.tipSwatch { width: 8px; height: 8px; border-radius: 2px; }
+.tipName { color: var(--text-2); font-weight: 600; }
+.tipVal { text-align: right; font-family: var(--mono); font-weight: 700; color: var(--text); }
+.tipVal em { font-style: normal; font-weight: 500; color: var(--text-muted); font-size: 0.7rem; }
