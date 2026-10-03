@@ -12,17 +12,18 @@
 
 import { ALGORITHM } from '../types/graphTypes.js'
 
-import { runBFSTwoPhase    } from './bfsTwoPhaseEngine.js'
-import { runDFSTwoPhase    } from './dfsTwoPhaseEngine.js'
-import { runUCSTwoPhase    } from './ucsTwoPhaseEngine.js'
-import { runGreedyTwoPhase } from './greedyTwoPhaseEngine.js'
-import { runAStarTwoPhase  } from './astarTwoPhaseEngine.js'
+import { runBFSTwoPhase          } from './bfsTwoPhaseEngine.js'
+import { runDFSTwoPhase          } from './dfsTwoPhaseEngine.js'
+import { runUCSTwoPhase          } from './ucsTwoPhaseEngine.js'
+import { runGreedyTwoPhase       } from './greedyTwoPhaseEngine.js'
+import { runAStarTwoPhase        } from './astarTwoPhaseEngine.js'
+import { runHillClimbingTwoPhase } from './hillClimbingTwoPhaseEngine.js'
 
 /**
  * Run the selected algorithm on the given graph and return the full
  * array of Two-Phase AlgorithmStep snapshots.
  *
- * @param {string} algorithmId  – one of ALGORITHM.BFS | DFS | UCS | GREEDY | ASTAR
+ * @param {string} algorithmId  – one of ALGORITHM.*
  * @param {import('../types/graphStructures.js').Graph} graph
  * @param {object} [options]
  * @param {function} [options.heuristicFn]  – custom heuristic (for Greedy / A*)
@@ -40,6 +41,11 @@ export function runAlgorithm(algorithmId, graph, options = {}) {
       return runGreedyTwoPhase(graph, options)
     case ALGORITHM.ASTAR:
       return runAStarTwoPhase(graph, options)
+    case ALGORITHM.HILL_CLIMBING:
+      return runHillClimbingTwoPhase(graph, options)
+    case ALGORITHM.SIMULATED_ANNEALING:
+      console.warn(`[algorithmEngine] Engine for "${algorithmId}" is registered. Execution engine implementation coming in next phase.`)
+      return []
     default:
       console.warn(`[algorithmEngine] Unknown algorithm: "${algorithmId}"`)
       return []

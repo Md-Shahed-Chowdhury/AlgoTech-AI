@@ -14,6 +14,7 @@ import {
   getNeighbors,
   reconstructPath,
   pathToEdges,
+  calculatePathCost,
 } from '../utils/graphUtils.js'
 
 export function runDFSTwoPhase(graph) {
@@ -128,6 +129,7 @@ export function runDFSTwoPhase(graph) {
     if (current === goalId) {
       const pathNodes = reconstructPath(parentMap, goalId)
       const pathEdges = pathToEdges(pathNodes, graph)
+      const cost = calculatePathCost(pathNodes, graph)
       steps.push({
         stepIndex: steps.length,
         stepType: ACTION_TYPE.GOAL_REACHED,
@@ -147,7 +149,7 @@ export function runDFSTwoPhase(graph) {
         neighborsConsidered: [],
         algorithmSpecificState: { stackBefore: stackBeforePop, stackAfter: stackAfterPop },
         reason: `Goal node ${goalId} popped from LIFO stack! Solution path: ${pathNodes.join(' → ')}.`,
-        metrics: { nodesExpanded, pathLength: pathNodes.length - 1, totalCost: pathNodes.length - 1, frontierSize: stackAfterPop.length },
+        metrics: { nodesExpanded, pathLength: pathNodes.length - 1, totalCost: cost, frontierSize: stackAfterPop.length },
         isInitial: false,
         isFinal: true,
         pathFound: true,
@@ -174,7 +176,7 @@ export function runDFSTwoPhase(graph) {
       neighborsConsidered: [],
       algorithmSpecificState: { stackBefore: stackBeforePop, stackAfter: stackAfterPop },
       reason: `DFS pops top node ${current} from LIFO stack. Node ${current} is now active.`,
-      metrics: { nodesExpanded, pathLength: currentPath.length - 1, totalCost: currentPath.length - 1, frontierSize: stackAfterPop.length },
+      metrics: { nodesExpanded, pathLength: currentPath.length - 1, totalCost: calculatePathCost(currentPath, graph), frontierSize: stackAfterPop.length },
       isInitial: false,
       isFinal: false,
       pathFound: false,
@@ -239,7 +241,7 @@ export function runDFSTwoPhase(graph) {
       reason: neighbors.length > 0
         ? `Node ${current} evaluated all ${neighbors.length} outgoing edge(s) [${neighbors.join(', ')}]. Pushed ${unvisitedNeighbors.length} unvisited neighbor(s) [${unvisitedNeighbors.join(', ')}] onto LIFO stack.`
         : `Node ${current} has no unvisited outgoing edges. DFS will backtrack on the next step.`,
-      metrics: { nodesExpanded, pathLength: currentPath.length - 1, totalCost: currentPath.length - 1, frontierSize: stackAfterExplore.length },
+      metrics: { nodesExpanded, pathLength: currentPath.length - 1, totalCost: calculatePathCost(currentPath, graph), frontierSize: stackAfterExplore.length },
       isInitial: false,
       isFinal: false,
       pathFound: false,

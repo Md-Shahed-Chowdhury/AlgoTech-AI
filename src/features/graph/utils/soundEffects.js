@@ -2,7 +2,7 @@
  * soundEffects.js
  * ─────────────────────────────────────────────────────────────────────────────
  * Web Audio API synthesizer helper for subtle, pleasant audio feedback
- * during interactive exam sessions. Zero external dependencies.
+ * during interactive search simulations and exam sessions. Zero external dependencies.
  */
 
 let audioCtx = null
@@ -22,7 +22,7 @@ function getAudioContext() {
 }
 
 /**
- * Play a short pleasant ascending chime for correct answers.
+ * Play a short pleasant ascending chime for correct answers or reaching goal.
  */
 export function playSuccessSound() {
   try {
@@ -51,7 +51,7 @@ export function playSuccessSound() {
 }
 
 /**
- * Play a soft gentle low buzz/thud for wrong answers.
+ * Play a soft gentle low buzz/thud for wrong answers or local optimum traps.
  */
 export function playErrorSound() {
   try {
@@ -75,5 +75,84 @@ export function playErrorSound() {
     osc.stop(now + 0.22)
   } catch {
     // Ignore audio block/policy restrictions
+  }
+}
+
+/**
+ * Play a soft high blip for evaluating neighbor candidates.
+ */
+export function playEvaluateSound() {
+  try {
+    const ctx = getAudioContext()
+    if (!ctx) return
+    const now = ctx.currentTime
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(587.33, now) // D5
+    gain.gain.setValueAtTime(0.05, now)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08)
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.start(now)
+    osc.stop(now + 0.08)
+  } catch {
+    // Ignore
+  }
+}
+
+/**
+ * Play a pleasant mid tone when selecting the next node or moving to neighbor.
+ */
+export function playSelectSound() {
+  try {
+    const ctx = getAudioContext()
+    if (!ctx) return
+    const now = ctx.currentTime
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(440, now)       // A4
+    osc.frequency.exponentialRampToValueAtTime(523.25, now + 0.06) // C5
+    gain.gain.setValueAtTime(0.08, now)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12)
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.start(now)
+    osc.stop(now + 0.12)
+  } catch {
+    // Ignore
+  }
+}
+
+/**
+ * Play a subtle click for general step transitions.
+ */
+export function playStepSound() {
+  try {
+    const ctx = getAudioContext()
+    if (!ctx) return
+    const now = ctx.currentTime
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(350, now)
+    gain.gain.setValueAtTime(0.04, now)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05)
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.start(now)
+    osc.stop(now + 0.05)
+  } catch {
+    // Ignore
   }
 }

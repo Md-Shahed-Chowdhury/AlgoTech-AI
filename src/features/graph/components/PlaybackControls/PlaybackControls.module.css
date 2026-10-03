@@ -14,15 +14,42 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
+}
+
+.transportBtn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm, 6px);
+  color: var(--text-2);
+  transition: all var(--fast);
+}
+
+.transportBtn:hover:not(:disabled) {
+  background: var(--bg-elevated);
+  color: var(--text);
 }
 
 .playBtn {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   padding: 0;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
   border-radius: 50%;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.playBtnActive {
+  background: #f43f5e !important;
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 14px rgba(244, 63, 94, 0.45) !important;
 }
 
 .scrubberRow {

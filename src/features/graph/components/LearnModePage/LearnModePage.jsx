@@ -29,11 +29,13 @@ import ExplanationPanel from '../ExplanationPanel/ExplanationPanel.jsx'
 import styles from './LearnModePage.module.css'
 
 const ALGOS = [
-  { id: ALGORITHM.BFS,    name: 'BFS' },
-  { id: ALGORITHM.DFS,    name: 'DFS' },
-  { id: ALGORITHM.UCS,    name: 'UCS' },
-  { id: ALGORITHM.GREEDY, name: 'Greedy' },
-  { id: ALGORITHM.ASTAR,  name: 'A*' },
+  { id: ALGORITHM.BFS,                 name: 'BFS' },
+  { id: ALGORITHM.DFS,                 name: 'DFS' },
+  { id: ALGORITHM.UCS,                 name: 'UCS' },
+  { id: ALGORITHM.GREEDY,              name: 'Greedy' },
+  { id: ALGORITHM.ASTAR,               name: 'A*' },
+  { id: ALGORITHM.HILL_CLIMBING,       name: 'Hill Climbing' },
+  { id: ALGORITHM.SIMULATED_ANNEALING, name: 'Simulated Annealing' },
 ]
 
 export default function LearnModePage() {
@@ -173,7 +175,11 @@ export default function LearnModePage() {
                 <div className={styles.completionMetricsGrid}>
                   <div className={styles.compTile}>
                     <span>Path Cost</span>
-                    <strong>{currentStep.metrics?.totalCost ?? currentStep.pathNodes?.length - 1}</strong>
+                    <strong>{currentStep.metrics?.totalCost ?? 0}</strong>
+                  </div>
+                  <div className={styles.compTile}>
+                    <span>Edges (Length)</span>
+                    <strong>{currentStep.metrics?.pathLength ?? Math.max(0, (currentStep.pathNodes?.length ?? 1) - 1)}</strong>
                   </div>
                   <div className={styles.compTile}>
                     <span>Nodes Expanded</span>

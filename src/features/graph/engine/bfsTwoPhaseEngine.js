@@ -14,6 +14,7 @@ import {
   getNeighbors,
   reconstructPath,
   pathToEdges,
+  calculatePathCost,
 } from '../utils/graphUtils.js'
 
 export function runBFSTwoPhase(graph) {
@@ -101,6 +102,7 @@ export function runBFSTwoPhase(graph) {
     if (current === goalId) {
       const pathNodes = reconstructPath(parentMap, goalId)
       const pathEdges = pathToEdges(pathNodes, graph)
+      const cost = calculatePathCost(pathNodes, graph)
       steps.push({
         stepIndex: steps.length,
         stepType: ACTION_TYPE.GOAL_REACHED,
@@ -119,8 +121,8 @@ export function runBFSTwoPhase(graph) {
         neighbors: [],
         neighborsConsidered: [],
         algorithmSpecificState: { queueBefore: queueBeforePop, queueAfter: queueAfterPop },
-        reason: `Goal node ${goalId} popped from FIFO queue! Solution path: ${pathNodes.join(' → ')}. BFS guarantees shortest path in unweighted graphs.`,
-        metrics: { nodesExpanded, pathLength: pathNodes.length - 1, totalCost: pathNodes.length - 1, frontierSize: queueAfterPop.length },
+        reason: `Goal node ${goalId} popped from FIFO queue! Solution path: ${pathNodes.join(' → ')}. BFS guarantees shortest edge-count path in unweighted graphs.`,
+        metrics: { nodesExpanded, pathLength: pathNodes.length - 1, totalCost: cost, frontierSize: queueAfterPop.length },
         isInitial: false,
         isFinal: true,
         pathFound: true,
@@ -147,7 +149,7 @@ export function runBFSTwoPhase(graph) {
       neighborsConsidered: [],
       algorithmSpecificState: { queueBefore: queueBeforePop, queueAfter: queueAfterPop },
       reason: `BFS pops node ${current} from the front of the FIFO queue. Node ${current} is now the active visited node.`,
-      metrics: { nodesExpanded, pathLength: currentPath.length - 1, totalCost: currentPath.length - 1, frontierSize: queueAfterPop.length },
+      metrics: { nodesExpanded, pathLength: currentPath.length - 1, totalCost: calculatePathCost(currentPath, graph), frontierSize: queueAfterPop.length },
       isInitial: false,
       isFinal: false,
       pathFound: false,
@@ -215,7 +217,7 @@ export function runBFSTwoPhase(graph) {
       reason: neighbors.length > 0
         ? `Node ${current} explored all ${neighbors.length} outgoing edge(s) [${neighbors.join(', ')}]. ${pushedIds.length > 0 ? `Pushed new neighbor(s) [${pushedIds.join(', ')}] to the FIFO queue.` : 'No new unvisited neighbors.'}`
         : `Node ${current} has no outgoing edges.`,
-      metrics: { nodesExpanded, pathLength: currentPath.length - 1, totalCost: currentPath.length - 1, frontierSize: queueAfterExplore.length },
+      metrics: { nodesExpanded, pathLength: currentPath.length - 1, totalCost: calculatePathCost(currentPath, graph), frontierSize: queueAfterExplore.length },
       isInitial: false,
       isFinal: false,
       pathFound: false,

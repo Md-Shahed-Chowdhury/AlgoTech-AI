@@ -135,6 +135,7 @@ export function reconstructPath(parentMap, goalId) {
  */
 export function pathToEdges(pathNodes, graph) {
   const edgeIds = []
+  if (!Array.isArray(pathNodes) || !graph || !graph.edges) return edgeIds
   for (let i = 0; i < pathNodes.length - 1; i++) {
     const a = pathNodes[i]
     const b = pathNodes[i + 1]
@@ -146,6 +147,34 @@ export function pathToEdges(pathNodes, graph) {
     if (edge) edgeIds.push(edge.id)
   }
   return edgeIds
+}
+
+/**
+ * Calculate the true path cost by summing edge weights along consecutive path nodes.
+ *
+ * @param {string[]} pathNodes
+ * @param {import('./graphStructures').Graph} graph
+ * @returns {number}
+ */
+export function calculatePathCost(pathNodes, graph) {
+  if (!Array.isArray(pathNodes) || pathNodes.length <= 1 || !graph || !graph.edges) return 0
+  let total = 0
+  for (let i = 0; i < pathNodes.length - 1; i++) {
+    const src = pathNodes[i]
+    const tgt = pathNodes[i + 1]
+    const edge = Object.values(graph.edges).find(
+      e =>
+        (e.sourceId === src && e.targetId === tgt) ||
+        (!e.directed && e.sourceId === tgt && e.targetId === src)
+    )
+    if (edge) {
+      const w = typeof edge.weight === 'number' ? edge.weight : (parseFloat(edge.weight) || 1)
+      total += w
+    } else {
+      total += 1
+    }
+  }
+  return total
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
