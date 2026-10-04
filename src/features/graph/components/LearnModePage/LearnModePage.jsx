@@ -10,14 +10,25 @@
  *   - COMPLETION: Polished Goal Reached banner with path trace & metrics breakdown
  */
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BookOpen, RotateCcw, Trophy, CheckCircle2, ArrowRight, Sparkles } from 'lucide-react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useGraphStore } from '../../store/useGraphStore.js'
 import { useAlgorithmStore } from '../../store/useAlgorithmStore.js'
 import { ALGORITHM, ALGORITHM_META } from '../../types/graphTypes.js'
-import { createPresetGraph } from '../../utils/graphUtils.js'
+
+/**
+ * Everything the search result depends on (not node positions or labels), so
+ * dragging a node does not restart the simulation but any real edit does.
+ */
+function topologyKey(graph) {
+  const nodes = Object.values(graph?.nodes ?? {})
+    .map(n => `${n.id}:${n.hValue ?? n.h ?? ''}`).sort().join(',')
+  const edges = Object.values(graph?.edges ?? {})
+    .map(e => `${e.sourceId}-${e.targetId}:${e.weight}:${e.directed ? 1 : 0}`).sort().join(',')
+  return `${graph?.startId}|${graph?.goalId}|${nodes}|${edges}`
+}
 
 import GraphCanvas from '../GraphCanvas/GraphCanvas.jsx'
 import GraphBuilder from '../GraphBuilder/GraphBuilder.jsx'
@@ -54,13 +65,23 @@ export default function LearnModePage() {
   const currentStep = steps[currentStepIndex] ?? null
   const totalSteps = steps.length
 
-  // Sync URL parameter algorithmId → store & auto-reset to default preset graph
+  // Sync URL parameter algorithmId → store. Keep the graph the user is working
+  // on (only fall back to the preset when the canvas is empty) so switching
+  // algorithms runs the new algorithm on the SAME graph.
   useEffect(() => {
     const activeAlgo = algorithmId || ALGORITHM.BFS
-    loadPreset()
-    const defaultGraph = createPresetGraph()
-    prepare(defaultGraph, { algorithmId: activeAlgo })
+    if (Object.keys(useGraphStore.getState().graph.nodes).length === 0) loadPreset()
+    prepare(useGraphStore.getState().graph, { algorithmId: activeAlgo })
   }, [algorithmId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Graph edited → re-run, so playback never replays steps from an older graph
+  const graphKey = topologyKey(graph)
+  const lastGraphKey = useRef(graphKey)
+  useEffect(() => {
+    if (graphKey === lastGraphKey.current) return
+    lastGraphKey.current = graphKey
+    prepare(useGraphStore.getState().graph)
+  }, [graphKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const meta = ALGORITHM_META[selectedAlgorithm] || ALGORITHM_META[ALGORITHM.BFS]
 

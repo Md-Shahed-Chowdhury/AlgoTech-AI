@@ -19,6 +19,7 @@ import {
   Eraser,
   Play,
   Info,
+  TriangleAlert,
 } from 'lucide-react'
 import { useGraphStore } from '../../store/useGraphStore.js'
 import { useAlgorithmStore } from '../../store/useAlgorithmStore.js'
@@ -49,6 +50,10 @@ export default function GraphBuilder({ onRun, showStatsPanel = true }) {
   const validationErrors = useAlgorithmStore(s => s.validationErrors)
 
   const activeTool = TOOLS.find(t => t.mode === builderMode) || TOOLS[0]
+
+  // Checked on every edit so the warning updates as the user builds,
+  // ordered by what to do next: nodes → edges → start → goal
+  const liveErrors = validateGraph(graph).sort((a, b) => errorRank(a) - errorRank(b))
 
   const handleRun = () => {
     const errors = validateGraph(graph)
@@ -132,6 +137,21 @@ export default function GraphBuilder({ onRun, showStatsPanel = true }) {
       {/* Run Algorithm Button (if onRun is provided) */}
       {onRun && (
         <div className={styles.runBar}>
+          {/* Live setup warning on the same row as Run, single line, so the
+              canvas below never shifts while the user is placing nodes */}
+          {liveErrors.length > 0 && (
+            <div
+              className={styles.setupWarning}
+              role="alert"
+              title={liveErrors.map(friendlyError).join('\n')}
+            >
+              <TriangleAlert size={15} className={styles.setupWarningIcon} />
+              <span className={styles.setupWarningText}>{friendlyError(liveErrors[0])}</span>
+              {liveErrors.length > 1 && (
+                <span className={styles.setupWarningMore}>+{liveErrors.length - 1} more</span>
+              )}
+            </div>
+          )}
           <button
             id="builder-run"
             className={`btn btn-primary ${styles.runBtn}`}
@@ -143,4 +163,21 @@ export default function GraphBuilder({ onRun, showStatsPanel = true }) {
       )}
     </div>
   )
+}
+
+function errorRank(err) {
+  if (err.includes('at least 2 nodes')) return 0
+  if (err.includes('no edges')) return 1
+  if (err.startsWith('No start')) return 2
+  if (err.startsWith('No goal')) return 3
+  return 4
+}
+
+/** Turn validateGraph() messages into instructions that say which tool to use. */
+function friendlyError(err) {
+  if (err.startsWith('No goal')) return 'Goal node is not set. Choose "Set Goal", then click the node you want to reach.'
+  if (err.startsWith('No start')) return 'Start node is not set. Choose "Set Start", then click the node to begin from.'
+  if (err.includes('no edges')) return 'The graph has no edges. Choose "Connect Nodes", then click two nodes to link them.'
+  if (err.includes('at least 2 nodes')) return 'Add at least 2 nodes. Choose "Add Node", then click on the canvas.'
+  return err
 }
