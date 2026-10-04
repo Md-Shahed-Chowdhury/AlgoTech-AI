@@ -173,7 +173,9 @@ export default function GraphStatsPanel({ onTriggerInlineEdit }) {
                     min="0"
                     step="any"
                     placeholder="Auto (Canvas Distance)"
-                    value={hInput}
+                    value={selectedNode.isGoal ? '0' : hInput}
+                    disabled={selectedNode.isGoal}
+                    title={selectedNode.isGoal ? 'The goal node always has h = 0' : undefined}
                     onChange={(e) => {
                       setHInput(e.target.value)
                       setNodeHeuristic(selectedNodeId, e.target.value.trim() === '' ? null : Number(e.target.value))

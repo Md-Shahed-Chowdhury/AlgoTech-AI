@@ -56,6 +56,7 @@ export const useAlgorithmStore = create((set, get) => ({
    * @param {object} [options]
    */
   prepare: (graph, options = {}) => {
+    get()._stopPlayback() // a running timer must not keep stepping through replaced steps
     const algo = (typeof options === 'string' ? options : options?.algorithmId) ?? get().selectedAlgorithm ?? ALGORITHM.BFS
     const steps        = runAlgorithm(algo, graph, typeof options === 'object' ? options : {})
     const explanations = explainAllSteps(steps, algo, graph)

@@ -241,7 +241,8 @@ export default function GraphCanvas({
       x: node.x,
       y: node.y - 70,
       initialValue: node.label,
-      initialHValue: node.hValue ?? node.h ?? null,
+      initialHValue: node.isGoal ? 0 : (node.hValue ?? node.h ?? null),
+      isGoal: !!node.isGoal,
     })
   }
 

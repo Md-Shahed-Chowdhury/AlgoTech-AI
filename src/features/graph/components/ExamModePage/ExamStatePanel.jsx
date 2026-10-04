@@ -154,6 +154,7 @@ export default function ExamStatePanel({
           {algorithmId === ALGORITHM.UCS && 'UCS Priority Queue [g(n)]'}
           {algorithmId === ALGORITHM.GREEDY && 'Greedy Priority Queue [h(n)]'}
           {algorithmId === ALGORITHM.ASTAR && 'A* Priority Queue [g(n) + h(n) = f(n)]'}
+          {algorithmId === ALGORITHM.SIMULATED_ANNEALING && 'Annealing Acceptance Test [move if r < p]'}
         </h3>
 
         {/* BFS Queue */}
@@ -198,8 +199,37 @@ export default function ExamStatePanel({
           </div>
         )}
 
+        {/* Simulated Annealing: give the numbers needed to predict the next node */}
+        {algorithmId === ALGORITHM.SIMULATED_ANNEALING && (
+          <div className={styles.dsContainer}>
+            {algorithmSpecificState?.proposedNeighbor ? (
+              <>
+                <div className={styles.pqTableWrap}>
+                  <table className={styles.pqTable}>
+                    <tbody>
+                      <tr><td className={styles.pqNodeCell}>Walker is on</td><td className={styles.pqCostCell}>{currentNode} (h = {algorithmSpecificState.currentH})</td></tr>
+                      <tr><td className={styles.pqNodeCell}>Temperature</td><td className={styles.pqCostCell}>T = {algorithmSpecificState.temperature}</td></tr>
+                      <tr><td className={styles.pqNodeCell}>Random proposal</td><td className={styles.pqCostCell}>{algorithmSpecificState.proposedNeighbor} (h = {algorithmSpecificState.proposedH})</td></tr>
+                      <tr><td className={styles.pqNodeCell}>ΔE</td><td className={styles.pqCostCell}>{algorithmSpecificState.deltaE}</td></tr>
+                      <tr><td className={styles.pqNodeCell}>Acceptance p</td><td className={styles.pqTotalCell}>{algorithmSpecificState.acceptProb}</td></tr>
+                      <tr><td className={styles.pqNodeCell}>Random draw r</td><td className={styles.pqTotalCell}>{algorithmSpecificState.roll}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <span className={styles.emptyText} style={{ display: 'block', marginTop: '0.5rem' }}>
+                  If r &lt; p the walker moves to {algorithmSpecificState.proposedNeighbor}; otherwise it stays on {currentNode}. Click where the walker will be next.
+                </span>
+              </>
+            ) : (
+              <span className={styles.emptyText}>
+                The walker starts on {currentNode} at temperature T = {algorithmSpecificState?.temperature ?? '—'}. Click the node where the walker stands.
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Priority Queue (UCS / GREEDY / ASTAR) */}
-        {algorithmId !== ALGORITHM.BFS && algorithmId !== ALGORITHM.DFS && (
+        {algorithmId !== ALGORITHM.BFS && algorithmId !== ALGORITHM.DFS && algorithmId !== ALGORITHM.SIMULATED_ANNEALING && (
           <div className={styles.dsContainer}>
             {frontierNodes.length === 0 ? (
               <span className={styles.emptyText}>Priority Queue is empty.</span>

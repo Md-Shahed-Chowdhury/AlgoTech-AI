@@ -22,6 +22,7 @@
  */
 
 import { ALGORITHM, ALGORITHM_META } from '../types/graphTypes.js'
+import { explainAnnealingStep } from './annealingExplanation.js'
 
 function normalizeAlgorithmId(id) {
   if (!id) return ALGORITHM.BFS
@@ -75,6 +76,12 @@ function normalizeAlgorithmId(id) {
 export function explainStep(step, algorithmId, graph, level = 'beginner') {
   const normAlgo = normalizeAlgorithmId(algorithmId)
   const meta = ALGORITHM_META[normAlgo] ?? { name: algorithmId, color: '#8b5cf6' }
+
+  // Simulated Annealing has its own acceptance-rule narrative
+  if (normAlgo === ALGORITHM.SIMULATED_ANNEALING) {
+    return explainAnnealingStep(step, graph, level, meta)
+  }
+
   const currentNode = step.currentNode ?? step.selectedNode ?? '?'
   const startId = graph?.startId ?? 'Start'
   const goalId = graph?.goalId ?? 'Goal'
