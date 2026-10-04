@@ -28,6 +28,21 @@ export const EXAM_STAGE = {
   REPLAY:  'REPLAY',  // Replay complete exam step-by-step with answers revealed
 }
 
+/**
+ * The state the student sees while answering a question. Normally the step
+ * just before the expansion, but Hill Climbing's EXPLORE_NEIGHBORS step has
+ * already picked and visited the next node, which would show the answer, so
+ * fall back to the step before that decision.
+ */
+function snapshotBeforeDecision(steps, index) {
+  const before = steps[Math.max(0, index - 1)]
+  const answer = steps[index]?.currentNode
+  const earlier = steps[index - 2]
+  const leaks = before && index >= 2 &&
+    before.visitedNodes?.includes(answer) && !earlier?.visitedNodes?.includes(answer)
+  return leaks ? earlier : before
+}
+
 export const useExamStore = create((set, get) => ({
   // ── Configuration & Stage ──────────────────────────────────────────────────
   stage: EXAM_STAGE.BUILD,
@@ -113,7 +128,7 @@ export const useExamStore = create((set, get) => ({
     const questionRecords = finalExpansionSteps.map((step, idx) => ({
       questionIndex: idx,
       stepIndexInAll: steps.indexOf(step),
-      stepSnapshotBefore: steps[Math.max(0, steps.indexOf(step) - 1)] ?? step,
+      stepSnapshotBefore: snapshotBeforeDecision(steps, steps.indexOf(step)) ?? step,
       correctNodeId: step.currentNode,
       attempts: [],       // clicked nodeIds
       completed: false,

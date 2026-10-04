@@ -6,7 +6,7 @@
  * and inline editing popover. Handles drag-and-drop node placement.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGraphStore } from '../../store/useGraphStore.js'
 import { useAlgorithmStore } from '../../store/useAlgorithmStore.js'
@@ -84,6 +84,21 @@ export default function GraphCanvas({
   // Graph topology store
   const storeGraph = useGraphStore(s => s.graph)
   const graph = graphProp ?? storeGraph
+
+  // Pages draw the same graph at different sizes (e.g. Give Test builds at
+  // 1100 wide but predicts at 780), so grow the view to include every node
+  // instead of clipping the ones placed further out.
+  const autoViewBox = useMemo(() => {
+    const PAD = 50 // room for the START/GOAL badge above and the h badge to the right
+    let minX = 0, minY = 0, maxX = width, maxY = height
+    for (const n of Object.values(graph?.nodes ?? {})) {
+      minX = Math.min(minX, n.x - PAD)
+      minY = Math.min(minY, n.y - PAD)
+      maxX = Math.max(maxX, n.x + PAD)
+      maxY = Math.max(maxY, n.y + PAD)
+    }
+    return [minX, minY, maxX - minX, maxY - minY].map(Math.round).join(' ')
+  }, [graph?.nodes, width, height])
   const builderMode = useGraphStore(s => s.builderMode)
   const selectedNodeId = useGraphStore(s => s.selectedNodeId)
   const selectedEdgeId = useGraphStore(s => s.selectedEdgeId)
@@ -293,7 +308,7 @@ export default function GraphCanvas({
         className={styles.svg}
         width="100%"
         height={viewBox ? '100%' : height}
-        viewBox={viewBox ?? `0 0 ${width} ${height}`}
+        viewBox={viewBox ?? autoViewBox}
         onPointerDown={handleCanvasPointerDown}
         onPointerMove={handleSvgPointerMove}
         aria-label="Interactive graph canvas"
