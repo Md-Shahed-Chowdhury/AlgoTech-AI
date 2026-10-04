@@ -12,7 +12,7 @@ import { Check, X, Sigma } from 'lucide-react'
 import styles from './GraphCanvas.module.css'
 
 export default function InlineEditor({
-  target,     // { type: 'node' | 'edge', id, x, y, initialValue, initialHValue }
+  target,     // { type: 'node' | 'edge', id, x, y, initialValue, initialHValue, isGoal }
   onSave,     // (newValue, newHValue?) => void
   onCancel,   // () => void
 }) {
@@ -94,8 +94,10 @@ export default function InlineEditor({
                 type="number"
                 min="0"
                 step="any"
-                value={hValue}
+                value={target.isGoal ? '0' : hValue}
                 onChange={(e) => setHValue(e.target.value)}
+                disabled={target.isGoal}
+                title={target.isGoal ? 'The goal node always has h = 0' : undefined}
                 onKeyDown={handleKeyDown}
                 className={`${styles.inlineInput} ${styles.inlineHInput}`}
                 placeholder="e.g. 5"

@@ -25,6 +25,23 @@ const nextNodeId = () => {
 
 const nextEdgeId = (src, tgt) => `${src}-${tgt}`
 
+// The goal is the target state, so its heuristic is always h = 0. The user's
+// own value is kept in hBeforeGoal and restored when the node stops being goal.
+const asGoal = (node) => ({
+  ...node,
+  isGoal: true,
+  isStart: false,
+  hBeforeGoal: node.hBeforeGoal !== undefined ? node.hBeforeGoal : (node.hValue ?? node.h ?? null),
+  hValue: 0,
+  h: 0,
+})
+
+const asNonGoal = (node) => {
+  if (node.hBeforeGoal === undefined) return { ...node, isGoal: false }
+  const { hBeforeGoal, ...rest } = node
+  return { ...rest, isGoal: false, hValue: hBeforeGoal, h: hBeforeGoal }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const useGraphStore = create((set, get) => ({
@@ -124,6 +141,7 @@ export const useGraphStore = create((set, get) => ({
     set(state => {
       const node = state.graph.nodes[nodeId]
       if (!node) return state
+      if (nodeId === state.graph.goalId) return state // goal stays h = 0
       return {
         graph: {
           ...state.graph,
@@ -215,7 +233,7 @@ export const useGraphStore = create((set, get) => ({
         nodes[state.graph.startId] = { ...nodes[state.graph.startId], isStart: false }
       }
       if (nodes[nodeId]) {
-        nodes[nodeId] = { ...nodes[nodeId], isStart: true, isGoal: false }
+        nodes[nodeId] = { ...asNonGoal(nodes[nodeId]), isStart: true }
       }
       return {
         graph: {
@@ -231,11 +249,11 @@ export const useGraphStore = create((set, get) => ({
   setGoal: (nodeId) => {
     set(state => {
       const nodes = { ...state.graph.nodes }
-      if (state.graph.goalId && nodes[state.graph.goalId]) {
-        nodes[state.graph.goalId] = { ...nodes[state.graph.goalId], isGoal: false }
+      if (state.graph.goalId && state.graph.goalId !== nodeId && nodes[state.graph.goalId]) {
+        nodes[state.graph.goalId] = asNonGoal(nodes[state.graph.goalId])
       }
       if (nodes[nodeId]) {
-        nodes[nodeId] = { ...nodes[nodeId], isGoal: true, isStart: false }
+        nodes[nodeId] = asGoal(nodes[nodeId])
       }
       return {
         graph: {
