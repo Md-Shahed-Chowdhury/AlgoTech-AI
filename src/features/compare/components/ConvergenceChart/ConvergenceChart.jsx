@@ -2,22 +2,17 @@
  * ConvergenceChart.jsx
  * ─────────────────────────────────────────────────────────────────────────────
  * Inline-SVG line chart: x = step, one line per algorithm (color + dash
- * pattern), selectable metric. Crosshair tooltip on hover, direct end labels,
+ * pattern), showing distance to goal. Crosshair tooltip on hover, direct end labels,
  * and a marker for the current playback step.
  */
 
 import { useState, useRef } from 'react'
 import { useCompareStore } from '../../store/useCompareStore.js'
 import { ALGO_BY_ID } from '../../constants.js'
-import { LOCAL_SEARCH } from '../../engine/runAny.js'
 import styles from './ConvergenceChart.module.css'
 
 const METRICS = [
   { id: 'distance', label: 'Distance to goal', help: 'True remaining cost from the node being expanded. A line that drops quickly to 0 means the search homes in on the goal; jumps upward mean it wandered away.' },
-  { id: 'frontier', label: 'Frontier size',    help: 'Nodes waiting to be explored, which is the memory cost. Growing frontiers mean a wide search.' },
-  { id: 'hCurrent', label: 'h(current node)',  help: "The heuristic's estimate for the node being expanded. Compare it with Distance to goal to see how well h guides the search." },
-  { id: 'expanded', label: 'Nodes expanded',   help: 'Cumulative search effort (iterations for local search). Lines rise at a similar rate; where each line ends is what matters.' },
-  { id: 'temperature', label: 'Temperature', requires: LOCAL_SEARCH.ANNEALING, help: 'Simulated Annealing cools by T ← T × α each iteration. While T is high, uphill moves are likely to be accepted; as T falls the search turns greedy and settles.' },
 ]
 
 const W = 720
