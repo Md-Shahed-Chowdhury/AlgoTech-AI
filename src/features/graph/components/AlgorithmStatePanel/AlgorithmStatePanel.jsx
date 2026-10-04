@@ -10,6 +10,7 @@
  *      • Greedy: Priority Queue table with h(n) heuristic estimate
  *      • A*: Priority Queue table with g(n), h(n), and f(n) = g(n) + h(n)
  *      • Hill Climbing: Current state, h(current), candidate neighbor evaluation, selected move, local status
+ *      • Simulated Annealing: Current state, temperature T, proposed move, ΔE / p / r acceptance test
  */
 
 import { motion } from 'framer-motion'
@@ -34,22 +35,18 @@ export default function AlgorithmStatePanel() {
   const meta = ALGORITHM_META[selectedAlgorithm]
 
   if (!currentStep) {
-    const isUnimplemented = selectedAlgorithm === ALGORITHM.SIMULATED_ANNEALING
     return (
       <div className={`card ${styles.panel}`}>
         <div className={styles.emptyState}>
           <Compass size={24} className={styles.emptyIcon} />
-          {isUnimplemented ? (
-            <p>
-              <strong>{meta?.name || 'Algorithm'} State:</strong> Registered in algorithm catalogue. Engine execution coming in next phase.
-            </p>
-          ) : (
-            <p>Run the algorithm simulation to inspect step-by-step state changes.</p>
-          )}
+          <p>Run the algorithm simulation to inspect step-by-step state changes.</p>
         </div>
       </div>
     )
   }
+
+  const isSA = selectedAlgorithm === ALGORITHM.SIMULATED_ANNEALING
+  const isLocal = selectedAlgorithm === ALGORITHM.HILL_CLIMBING || isSA
 
   const {
     currentNode,
@@ -90,7 +87,40 @@ export default function AlgorithmStatePanel() {
       </div>
 
       {/* Nodes Summary (Current, Selected / Heuristic, Status / Path) */}
-      {selectedAlgorithm === ALGORITHM.HILL_CLIMBING ? (
+      {isSA ? (
+        <div className={styles.nodeSummaryGrid}>
+          <div className={styles.nodeSummaryTile}>
+            <span className={styles.tileLabel}>Current Node</span>
+            <span className={`${styles.tileValue} ${currentNode ? styles.valCurrent : styles.valEmpty}`}>
+              {currentNode ?? 'None'}
+            </span>
+          </div>
+
+          <div className={styles.nodeSummaryTile}>
+            <span className={styles.tileLabel}>Temperature</span>
+            <span className={`${styles.tileValue} ${styles.valSelected}`}>
+              T = {algorithmSpecificState?.temperature ?? '—'}
+            </span>
+          </div>
+
+          <div className={styles.nodeSummaryTile}>
+            <span className={styles.tileLabel}>Proposed Move</span>
+            <span className={`${styles.tileValue} ${algorithmSpecificState?.proposedNeighbor ? styles.valSelected : styles.valEmpty}`}>
+              {algorithmSpecificState?.proposedNeighbor ?? 'None'}
+            </span>
+          </div>
+
+          <div className={styles.nodeSummaryTile}>
+            <span className={styles.tileLabel}>Status</span>
+            <span
+              className={styles.tileValue}
+              style={{ fontSize: '0.85rem', color: saStatusColor(algorithmSpecificState?.saStatus) }}
+            >
+              {algorithmSpecificState?.saStatus ?? 'Searching'}
+            </span>
+          </div>
+        </div>
+      ) : selectedAlgorithm === ALGORITHM.HILL_CLIMBING ? (
         <div className={styles.nodeSummaryGrid}>
           <div className={styles.nodeSummaryTile}>
             <span className={styles.tileLabel}>Current Node</span>
@@ -163,11 +193,11 @@ export default function AlgorithmStatePanel() {
       {currentPath && currentPath.length > 0 && (
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>
-            <Footprints size={13} /> {selectedAlgorithm === ALGORITHM.HILL_CLIMBING ? 'Search Trajectory' : 'Current Path'}
+            <Footprints size={13} /> {isLocal ? 'Search Trajectory' : 'Current Path'}
           </h3>
           <div className={styles.pathTrail}>
             {currentPath.map((id, idx) => (
-              <span key={id} className={styles.pathStep}>
+              <span key={`${id}-${idx}`} className={styles.pathStep}>
                 <span className={styles.pathNodeChip}>{id}</span>
                 {idx < currentPath.length - 1 && <ArrowRight size={11} className={styles.pathArrow} />}
               </span>
@@ -183,7 +213,8 @@ export default function AlgorithmStatePanel() {
           {selectedAlgorithm === ALGORITHM.BFS && 'FIFO Queue'}
           {selectedAlgorithm === ALGORITHM.DFS && 'LIFO Stack'}
           {selectedAlgorithm === ALGORITHM.HILL_CLIMBING && 'Candidate Neighbors'}
-          {selectedAlgorithm !== ALGORITHM.BFS && selectedAlgorithm !== ALGORITHM.DFS && selectedAlgorithm !== ALGORITHM.HILL_CLIMBING && 'Priority Queue'}
+          {isSA && 'Annealing Decision'}
+          {selectedAlgorithm !== ALGORITHM.BFS && selectedAlgorithm !== ALGORITHM.DFS && !isLocal && 'Priority Queue'}
         </h3>
 
         {/* BFS Queue Display */}
@@ -276,8 +307,68 @@ export default function AlgorithmStatePanel() {
           </div>
         )}
 
+        {/* Simulated Annealing: neighbors with ΔE + Metropolis acceptance test */}
+        {isSA && (
+          <div className={styles.tableWrapper}>
+            {frontierDetail && frontierDetail.length > 0 ? (
+              <table className={styles.pqTable}>
+                <thead>
+                  <tr>
+                    <th>Neighbor</th>
+                    <th>h(n)</th>
+                    <th>ΔE</th>
+                    <th>This Iteration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {frontierDetail.map(entry => {
+                    const isProposed = entry.nodeId === algorithmSpecificState?.proposedNeighbor
+                    return (
+                      <tr key={entry.nodeId} className={isProposed ? styles.activeRow : ''}>
+                        <td className={styles.nodeCell}>{entry.nodeId}</td>
+                        <td className={styles.priorityCell}>{entry.h}</td>
+                        <td style={{ color: entry.deltaE > 0 ? '#f43f5e' : '#10b981' }}>
+                          {entry.deltaE > 0 ? `+${entry.deltaE}` : entry.deltaE}
+                        </td>
+                        <td>
+                          {!isProposed ? (
+                            <span style={{ color: '#94a3b8' }}>{algorithmSpecificState?.proposedNeighbor ? 'Not proposed' : 'Candidate'}</span>
+                          ) : algorithmSpecificState?.accepted ? (
+                            <span style={{ color: '#10b981', fontWeight: 600 }}>Proposed → Accepted</span>
+                          ) : (
+                            <span style={{ color: '#f43f5e', fontWeight: 600 }}>Proposed → Rejected</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <span className={styles.emptyText}>No neighbors at this step</span>
+            )}
+
+            {algorithmSpecificState?.proposedNeighbor && (
+              <div className={styles.dsRow} style={{ marginTop: '0.6rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                <span className={styles.dsSubLabel}>Acceptance:</span>
+                <span className={styles.queueChip}>p = {algorithmSpecificState.acceptProb}</span>
+                <span className={styles.queueChip}>r = {algorithmSpecificState.roll}</span>
+                <span
+                  className={styles.queueChip}
+                  style={{ color: algorithmSpecificState.accepted ? '#10b981' : '#f43f5e' }}
+                >
+                  {algorithmSpecificState.accepted ? 'r < p → ACCEPT' : 'r ≥ p → REJECT'}
+                </span>
+                <span className={styles.queueChip}>
+                  T: {algorithmSpecificState.temperature} → {algorithmSpecificState.nextTemperature}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* UCS / Greedy / A* Priority Queue Table */}
-        {selectedAlgorithm !== ALGORITHM.BFS && selectedAlgorithm !== ALGORITHM.DFS && selectedAlgorithm !== ALGORITHM.HILL_CLIMBING && (
+        {selectedAlgorithm !== ALGORITHM.BFS && selectedAlgorithm !== ALGORITHM.DFS && !isLocal && (
           <div className={styles.tableWrapper}>
             {frontierDetail && frontierDetail.length > 0 ? (
               <table className={styles.pqTable}>
@@ -342,11 +433,11 @@ export default function AlgorithmStatePanel() {
       {/* Frontier Nodes / Immediate Neighbors */}
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>
-          <Eye size={13} className={styles.frontierIcon} /> {selectedAlgorithm === ALGORITHM.HILL_CLIMBING ? 'Immediate Neighbors' : 'Frontier Nodes'} ({frontierNodes.length})
+          <Eye size={13} className={styles.frontierIcon} /> {isLocal ? 'Immediate Neighbors' : 'Frontier Nodes'} ({frontierNodes.length})
         </h3>
         <div className={styles.chipsRow}>
           {frontierNodes.length === 0 ? (
-            <span className={styles.emptyText}>{selectedAlgorithm === ALGORITHM.HILL_CLIMBING ? 'No immediate neighbors' : 'None in frontier'}</span>
+            <span className={styles.emptyText}>{isLocal ? 'No immediate neighbors' : 'None in frontier'}</span>
           ) : (
             frontierNodes.map(id => (
               <span key={id} className={styles.frontierChip}>
@@ -358,4 +449,11 @@ export default function AlgorithmStatePanel() {
       </div>
     </div>
   )
+}
+
+function saStatusColor(status) {
+  if (status === 'Goal Reached') return '#10b981'
+  if (status === 'Move Rejected' || status === 'Frozen' || status === 'No Neighbors' || status === 'Iteration Limit') return '#f43f5e'
+  if (status === 'Uphill Move Accepted') return '#f59e0b'
+  return '#38bdf8'
 }

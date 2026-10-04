@@ -9,7 +9,7 @@
  *  - Calculation breakdown (g/h/f formulas from engine)
  */
 
-import { Activity, GitFork, Hash, DollarSign, Compass, Award } from 'lucide-react'
+import { Activity, GitFork, Hash, DollarSign, Compass, Award, Thermometer, TrendingUp } from 'lucide-react'
 import { useAlgorithmStore } from '../../store/useAlgorithmStore.js'
 import { ALGORITHM } from '../../types/graphTypes.js'
 import styles from './MetricsPanel.module.css'
@@ -56,6 +56,43 @@ export default function MetricsPanel() {
         {calculations?.length > 0 && (
           <div className={styles.calculations}>
             <h3 className={styles.calcTitle}>Local Objective Calculation</h3>
+            {calculations.map((calc, i) => (
+              <code key={i} className={styles.calcLine}>{calc}</code>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  if (selectedAlgorithm === ALGORITHM.SIMULATED_ANNEALING) {
+    const sa = currentStep.algorithmSpecificState ?? {}
+    const saMetrics = [
+      { label: 'Iterations', value: sa.iteration ?? 0, icon: Activity },
+      { label: 'Temperature', value: `T = ${sa.temperature ?? '—'}`, icon: Thermometer },
+      { label: 'Uphill Accepted', value: sa.uphillAccepted ?? 0, icon: TrendingUp },
+      { label: 'Current Heuristic', value: `h = ${curH}`, icon: Compass },
+      { label: 'Moves Made', value: Math.max(0, (currentPath?.length ?? 1) - 1), icon: GitFork },
+      { label: 'Status', value: isFinal ? (goalReached ? 'Target Reached' : (sa.saStatus ?? 'Frozen')) : (sa.saStatus ?? 'In Progress'), icon: Award },
+    ]
+
+    return (
+      <div className={`card ${styles.panel}`}>
+        <h2 className={styles.title}>Simulated Annealing Metrics</h2>
+
+        <div className={styles.grid}>
+          {saMetrics.map(({ label, value, icon: Icon }) => (
+            <div key={label} className={styles.metric}>
+              <Icon size={14} className={styles.metricIcon} />
+              <span className={styles.metricLabel}>{label}</span>
+              <span className={styles.metricValue}>{value}</span>
+            </div>
+          ))}
+        </div>
+
+        {calculations?.length > 0 && (
+          <div className={styles.calculations}>
+            <h3 className={styles.calcTitle}>Acceptance Calculation</h3>
             {calculations.map((calc, i) => (
               <code key={i} className={styles.calcLine}>{calc}</code>
             ))}

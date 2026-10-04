@@ -44,6 +44,9 @@ export function generateCorrectExplanation(algorithmId, node, step, graph) {
     case ALGORITHM.ASTAR:
       return `Correct! A* Search explores ${node} next because ${node} has the lowest total cost f(${node}) = g(${node}) + h(${node}) = ${g} + ${formatNum(h)} = ${formatNum(f)}.`
 
+    case ALGORITHM.SIMULATED_ANNEALING:
+      return annealingCorrectText(node, step)
+
     default:
       return `Correct! Node ${node} is the correct next node to explore.`
   }
@@ -72,6 +75,12 @@ export function generateWrongExplanation(algorithmId, clickedNode, correctNode, 
   const costComparison = {
     clicked: { node: clickedNode, g: gClicked, h: hClicked, f: fClicked },
     correct: { node: correctNode, g: gCorrect, h: hCorrect, f: fCorrect },
+  }
+
+  // Simulated Annealing may legitimately stay on or return to a visited node,
+  // so the generic visited / frontier checks below do not apply.
+  if (algorithmId === ALGORITHM.SIMULATED_ANNEALING) {
+    return annealingWrongExplanation(clickedNode, correctNode, step, costComparison)
   }
 
   // 1. Visited node selected
@@ -172,6 +181,14 @@ export function generateAlgorithmBehaviorSummary(algorithmId, accuracy) {
           : 'Greedy Search ignores edge path costs g(n) and chooses nodes purely based on lowest heuristic h(n). Ensure you compare h(n) values across all frontier candidates.',
       }
 
+    case ALGORITHM.SIMULATED_ANNEALING:
+      return {
+        conceptTitle: 'Metropolis Acceptance & Cooling Schedule',
+        description: isHigh
+          ? 'You demonstrated strong understanding of Simulated Annealing: downhill moves are always accepted, and uphill moves are accepted only when the random draw r is below p = e^(−ΔE/T).'
+          : 'Simulated Annealing proposes one random neighbor per iteration. Compute ΔE = h(next) − h(current); if ΔE ≤ 0 it moves, otherwise it moves only when r < p = e^(−ΔE/T). A rejected move means the walker stays put.',
+      }
+
     case ALGORITHM.ASTAR:
       return {
         conceptTitle: 'Balanced Cost Evaluation f(n) = g(n) + h(n)',
@@ -270,6 +287,12 @@ export function generateLearningRecommendations(mistakeCounts, algorithmId) {
     )
   }
 
+  if (mistakeCounts['Annealing Acceptance Error']) {
+    recommendations.push(
+      '💡 For Simulated Annealing, compare the random draw r with p = e^(−ΔE/T): move to the proposed neighbor only if r < p (or if ΔE ≤ 0). If the move is rejected, the walker stays on the same node.'
+    )
+  }
+
   if (mistakeCounts['Re-selecting Visited Node']) {
     recommendations.push(
       '⚠️ You selected nodes already in the Visited Set. Remember that graph search algorithms maintain a Closed Set to prevent infinite loops and redundant processing.'
@@ -283,4 +306,54 @@ export function generateLearningRecommendations(mistakeCounts, algorithmId) {
   }
 
   return recommendations
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Simulated Annealing feedback (the answer depends on r vs p, not on a frontier)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The proposal being decided: on the step itself, or the previous one (lastDecision). */
+function annealingDecision(step) {
+  const s = step?.algorithmSpecificState ?? {}
+  return s.proposedNeighbor ? s : (s.lastDecision ?? null)
+}
+
+// Two decimals so p and r match the values shown in the Exam State Tracker
+const fmt2 = (n) => (typeof n === 'number' ? (Number.isInteger(n) ? String(n) : n.toFixed(2)) : String(n ?? 0))
+
+function annealingDecisionLine(step) {
+  const s = annealingDecision(step)
+  if (!s) return null
+  return s.deltaE <= 0
+    ? `Proposal ${s.proposedNeighbor} has ΔE = ${fmt2(s.deltaE)} ≤ 0, so it is always accepted.`
+    : `Proposal ${s.proposedNeighbor} has ΔE = +${fmt2(s.deltaE)}, so p = e^(−ΔE/T) = ${fmt2(s.acceptProb)}. The draw r = ${fmt2(s.roll)} is ${s.accepted ? 'below p → accept' : 'not below p → reject'}.`
+}
+
+function annealingCorrectText(node, step) {
+  const line = annealingDecisionLine(step)
+  if (!line) return `Correct! The Simulated Annealing walker starts on node ${node}.`
+  return `Correct! ${line} So the walker ${annealingDecision(step).accepted ? 'moves to' : 'stays on'} ${node}.`
+}
+
+function annealingWrongExplanation(clickedNode, correctNode, step, costComparison) {
+  const s = annealingDecision(step) ?? {}
+  const line = annealingDecisionLine(step)
+  if (!line) {
+    return {
+      concise: `Not quite. Simulated Annealing starts on the start node ${correctNode}.`,
+      detailed: `Before any move is proposed, the walker stands on the start node ${correctNode}.`,
+      mistakeType: 'Annealing Acceptance Error',
+      costComparison,
+    }
+  }
+  const outcome = s.accepted ? `moves to ${correctNode}` : `stays on ${correctNode}`
+  const notProposed = clickedNode !== s.proposedNeighbor && clickedNode !== step?.currentNode
+  return {
+    concise: notProposed
+      ? `Not quite. Only the randomly proposed neighbor ${s.proposedNeighbor} could be reached this iteration. ${line} The walker ${outcome}.`
+      : `Not quite. ${line} The walker ${outcome}.`,
+    detailed: `Simulated Annealing tests ONE random proposal per iteration:\n  • Current node: ${step?.currentNode} (h = ${formatNum(s.currentH)})\n  • Proposal: ${s.proposedNeighbor} (h = ${formatNum(s.proposedH)}), ΔE = ${formatNum(s.deltaE)}\n  • Temperature T = ${fmt2(s.temperature)}, p = ${fmt2(s.acceptProb)}, r = ${fmt2(s.roll)}\nAccept if ΔE ≤ 0 or r < p; otherwise stay. Result: the walker ${outcome}.`,
+    mistakeType: 'Annealing Acceptance Error',
+    costComparison,
+  }
 }

@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { BookOpen, ClipboardList, Grid3x3, GitCompareArrows, Brain, Menu, X } from 'lucide-react'
+import { BookOpen, Grid3x3, GitCompareArrows, Brain, Menu, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import styles from './Navbar.module.css'
 
@@ -10,13 +10,6 @@ const NAV_ITEMS = [
     icon: BookOpen,
     accent: '#6366f1',
     desc: 'Study & visualize',
-  },
-  {
-    to: '/test',
-    label: 'Give Test',
-    icon: ClipboardList,
-    accent: '#10b981',
-    desc: 'Quiz yourself',
   },
   {
     to: '/grid',

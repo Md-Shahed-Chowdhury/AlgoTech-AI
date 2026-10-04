@@ -18,6 +18,7 @@ import { runUCSTwoPhase          } from './ucsTwoPhaseEngine.js'
 import { runGreedyTwoPhase       } from './greedyTwoPhaseEngine.js'
 import { runAStarTwoPhase        } from './astarTwoPhaseEngine.js'
 import { runHillClimbingTwoPhase } from './hillClimbingTwoPhaseEngine.js'
+import { runSimulatedAnnealingTwoPhase } from './simulatedAnnealingTwoPhaseEngine.js'
 
 /**
  * Run the selected algorithm on the given graph and return the full
@@ -44,8 +45,7 @@ export function runAlgorithm(algorithmId, graph, options = {}) {
     case ALGORITHM.HILL_CLIMBING:
       return runHillClimbingTwoPhase(graph, options)
     case ALGORITHM.SIMULATED_ANNEALING:
-      console.warn(`[algorithmEngine] Engine for "${algorithmId}" is registered. Execution engine implementation coming in next phase.`)
-      return []
+      return runSimulatedAnnealingTwoPhase(graph, options)
     default:
       console.warn(`[algorithmEngine] Unknown algorithm: "${algorithmId}"`)
       return []

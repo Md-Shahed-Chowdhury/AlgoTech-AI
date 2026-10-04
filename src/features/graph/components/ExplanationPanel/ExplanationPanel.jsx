@@ -35,7 +35,7 @@ import { useAlgorithmStore } from '../../store/useAlgorithmStore.js'
 import { useGraphStore } from '../../store/useGraphStore.js'
 import { useVoiceExplanation } from '../../hooks/useVoiceExplanation.js'
 import { explainStep } from '../../engine/explanationGenerator.js'
-import { ALGORITHM_META } from '../../types/graphTypes.js'
+import { ALGORITHM, ALGORITHM_META } from '../../types/graphTypes.js'
 import styles from './ExplanationPanel.module.css'
 
 function getActionBadgeInfo(step) {
@@ -312,8 +312,12 @@ export default function ExplanationPanel() {
         </h4>
         <p className={styles.nextText}>
           {isFinal
-            ? (goalReached ? 'Algorithm completed! The final solution path is highlighted.' : 'Frontier is empty. Search ended without finding goal.')
-            : `Step ${currentStepIndex + 2} will pop the next highest priority node from the frontier.`
+            ? (goalReached
+              ? 'Algorithm completed! The final solution path is highlighted.'
+              : (selectedAlgorithm === ALGORITHM.SIMULATED_ANNEALING ? 'The system has cooled down. Search ended without reaching the goal.' : 'Frontier is empty. Search ended without finding goal.'))
+            : (selectedAlgorithm === ALGORITHM.SIMULATED_ANNEALING
+              ? annealingNextText(currentStep, currentStepIndex)
+              : `Step ${currentStepIndex + 2} will pop the next highest priority node from the frontier.`)
           }
         </p>
       </div>
@@ -344,4 +348,15 @@ export default function ExplanationPanel() {
       </div>
     </div>
   )
+}
+
+/** "What happens next?" for Simulated Annealing: a random proposal, or applying the decision. */
+function annealingNextText(step, index) {
+  const s = step?.algorithmSpecificState ?? {}
+  if (step?.action === 'EXPLORE_NEIGHBORS') {
+    return s.accepted
+      ? `Step ${index + 2}: the walker moves to ${s.proposedNeighbor} at the cooler temperature T = ${s.nextTemperature}.`
+      : `Step ${index + 2}: the walker stays on ${step.currentNode} at the cooler temperature T = ${s.nextTemperature}.`
+  }
+  return `Step ${index + 2} will propose ONE random neighbor and test it with p = e^(−ΔE/T).`
 }
